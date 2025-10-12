@@ -369,7 +369,7 @@
                     origin="1970-01-01 00:00", tz = "UTC")
   ncdf4::nc_close(nc_file)
   # extract variables
-  varn <- c("t2m", "d2m", "sp", "u10" , "v10",  "tp", "msdwlwrf", "fdir", "ssrd", "lsm")
+  varn <- c("t2m", "d2m", "sp", "u10" , "v10",  "tp", "avg_sdlwrf", "fdir", "ssrd", "lsm")
   rlst <- list()
   for (i in 1:9) rlst[[i]]<-rast(nc, subds=varn[i])
   rlst[[10]]<-rast(nc, subds=varn[10])[[1]]
@@ -405,7 +405,7 @@
       if (crs(r) != crs(rll)) {
         rlst[[i]]<-project(rlst[[i]],r)
       } else {
-        rlst[[i]]<-resample(rlst[[i]],r)
+        rlst[[i]]<-resample(rlst[[i]],r, method = "cubic")
       }
       rlst[[i]]<-mask(rlst[[i]],r)
     }

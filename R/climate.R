@@ -85,7 +85,9 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout) {
   req2<-req[s]
   # download data
   dir.create(pathout,showWarnings=FALSE)
-  mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
+  if(length(req2) != 0) {
+    mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
+  }
   return(req)
 }
 #' @title Downloads UK Met Office climate data
@@ -316,6 +318,7 @@ era5_process <- function(req, pathin, r, tme, out = "grid", lat = NA, long = NA,
     for (i in 1:n) files[i]<-req[[i]]$target
   }
   # Get raster template for nc file
+  files = gsub("zip", "nc", files)
   nc<-paste0(pathin,files[1])
   # Grid process
   climdata<-.extract_clima(nc, r, resampleout)
