@@ -34,6 +34,17 @@
 #' }
 "esatable"
 
+#' A data frame of vegetation parameters for Copernicus global dynamic land cover types
+#' @format a data frame with the following columns:
+#' \describe{
+#'  \item{Code}{Numeric code used in ESA landcover data}
+#'  \item{Descriptor}{Description of vegetation type}
+#'  \item{x}{Ratio of vertical to horizontal projections of leaf foliage}
+#'  \item{gsmax}{Maximum stomatal conductances (mol / m^2 / s)}
+#'  \item{leafd}{Leaf diameter (m)}
+#' }
+"copernicus_gdlc_table"
+
 #' A dataset of leaf area index values
 #'
 #' A wrapped SpatRaster of leaf area index values for the Lizard Peninsula, Cornwall,

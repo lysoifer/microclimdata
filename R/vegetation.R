@@ -627,7 +627,11 @@ x_calc <- function(landcover, lctype = "ESA") {
   x <- landcover * 0 + 0.01
   if (lctype == "ESA") {
     ltable <- esatable
-  } else ltable <- corinetable
+  } else if (lctype == "CORINE") {
+    ltable <- corinetable
+  } else if (lctype == "Copernicus") {
+    ltable <- gdlctable
+  }
   for (i in 1:length(u)) {
     s <- which(ltable$Code == u[i])
     x[landcover == u[i]] <- ltable$x[s]
