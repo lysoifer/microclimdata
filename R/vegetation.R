@@ -616,7 +616,7 @@ lai_fromndvi <- function(RGB, CIR, modisLAI, maxlai = NA) {
 #' projections of leaf foliage from land cover data,
 #'
 #' @param landcover a SpatRaster of landcover class as returned by [lcover_download()].
-#' @param lctype one of `ESA` or `CORINE` indicating the source of `landcover`.
+#' @param lctype one of `ESA`, `CORINE`, or `Copernicus` indicating the source of `landcover`.
 #' @returns a SpatRaster leaf inclination coefficient values
 #' @import terra
 #' @export
@@ -684,7 +684,9 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
     ltable <- esatable
   } else if (lctype == "CORINE") {
     ltable <- corinetable
-  } else ltable <- lctype
+  } else if (lctype == "Copernicus") {
+    ltable <- gdlctable
+  } else {ltable <- lctype}
   for (i in 1:length(u)) {
     s <- which(ltable$Code == u[i])
     x[landcover == u[i]] <- ltable$x[s]
