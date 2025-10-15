@@ -47,13 +47,14 @@ ncep_download<-function(r, tme) {
 #' @param file_prefix character prefix to attach to the downloaded .nc files when downloaded.
 #' The year, month, and file extension is automatically added.
 #' @param pathout directory to which data are saved.
+#' @param clean if TRUE, removes zip files and only saves nc files
 #' @return a list of the request details sent to climateData Store for all microclimate
 #' relevant climate variables. Used by `era5_process` to process data. Files a downlaoded
 #' to the `pathout` directory.
 #' @seealso [era5_process()]
 #' @import terra
 #' @export
-era5_download<-function(r, tme, credentials, file_prefix, pathout) {
+era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   # set credentials
   sel <- which(credentials$Site == "CDS")
   uid <- credentials$username[sel]
@@ -79,6 +80,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout) {
   keep<-rep(TRUE,length(req))
   for (i in 1:length(req)) {
     fi<-paste0(pathout,req[[i]]$target)
+    fi<-gsub("zip", "nc", fi) # test if .nc file exists
     if (file.exists(fi)) keep[i]<-FALSE
   }
   s<-which(keep)
@@ -88,8 +90,18 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout) {
   if(length(req2) != 0) {
     mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
   }
+  
+  # remove the zip file if clean == TRUE
+  if(clean) {
+    fpaths = paste0(pathout,sapply(req, "[[", "target"))
+    for(i in fpaths) {
+      if(file.exists(fpaths[i])) unlink(fpaths[i])
+    }
+  }
+  
   return(req)
 }
+
 #' @title Downloads UK Met Office climate data
 #'
 #' @description This function downloads daily 1km HadUK-Grid historic temperature
