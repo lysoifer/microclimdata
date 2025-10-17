@@ -37,6 +37,28 @@ dem_download<-function(r, msk = TRUE, zeroasna = FALSE) {
   if (zeroasna) dtm[dtm<=0]<-NA
   return(dtm)
 }
+#' @title Processes topographic data
+#' 
+#' @description Processes elevation data to produce a topography raster containing elevation, slope, and aspect. Masks out water
+#' @param dem The elevation raster from dem_download
+#' @param lc Landcover layer
+#' @param lctype type of landcover layer. Can be 'CORINE', 'ESA', or 'Copernicus' (see descriptions in lc_download)
+#' @return a multi-layer SpatRaster of elevation, slope (degrees), and aspect (degrees)
+#' @seealso [dem_download()]
+#' @export
+topo_process<-function(dem, lc, lctype) {
+  # calculate aspect and slope
+  asp = terra::terrain(elev, "aspect", unit = "degrees")
+  slp = terra::terrain(elev, "slope", unit = "degrees")
+  
+  topo = c(elev, asp, slp)
+  names(topo) = c("elev", "asp", "slp")
+  
+  # mask elevation out negative elevation (water)
+  topo = .mask_water(topo, lc, lctype="Copernicus")
+  
+  return(topo)
+}
 #' @title Downloads soil data
 #'
 #' @description Downloads data on soil properties from the https://soilgrids.org/
