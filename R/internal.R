@@ -666,3 +666,28 @@
   sharpened <- mu * evals
   return(sharpened)
 }
+
+#' Mask out water values in rasters
+#' lctype: land cover layer used. can be 'Copernicus', 'ESA', or 'CORINE'
+.mask_water = function(r, lc, lctype) {
+  # compare geoms and reproject landcover if they are different
+  cp = compareGeom(r, lc)
+  if(!cp) {
+    lc = project(lc, r, method = "mode")
+  }
+  
+  if(lctype=="Copernicus") {
+    ltable <- microclimdata::gdlctable
+  }
+  if(lctype=="ESA") {
+    ltable <- microclimdata::esatable
+  }
+  if(lctype=="CORINE") {
+    ltable <- microclimdata::corinetable
+  }
+  
+  water <- ltable[grepl("water|sea", ltable[,2], ignore.case = T),][,1]
+  lc <- subst(lc, water, NA)
+  r = mask(r, lc)
+  return(r)
+}
