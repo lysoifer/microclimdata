@@ -88,7 +88,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   # download data
   dir.create(pathout,showWarnings=FALSE)
   if(length(req2) != 0) {
-    mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
+    mcera5::request_era5(request = req2, uid = uid, out_path = pathout, overwrite = T)
   }
   
   # remove the zip file if clean == TRUE
@@ -824,10 +824,22 @@ sst_download<-function(r, tme, resampleout = "FALSE", nafill = "FALSE") {
 #' @param aslatlong optional logical indicating whether `x` and `y` are longitude
 #' and latitude (TRUE) or the easting and northing in the same coordinate reference
 #' system as `climdata`
+#' @param altcorrect 0=no altitudinal correction; 1=temperature dependent lapse rate correction;
+#' humidity dependent lapse rate correction
+#' @param dtmc raster of era5 elevation data (optional; only needed if altcorrect>0)
+#' @param elev raster of elevation (optional; only needed if altcorrect>0)
 #' @import terra
 #' @export
-climpoint_extract<-function(climdata, x, y, aslatlong = FALSE) {
+climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtmc, elev) {
   r<-rast(climdata[[1]])[[1]]
+  # ensure crs matches
+  if(crs(r) != crs(elev)) {
+    for(i in 1:9) {
+      test = extend(climdata[[1]],1)
+      climdata[[i]] = project(climdata[[i]], crs(elev))
+    }
+    r<-rast(climdata[[1]])[[1]]
+  }
   xy <- data.frame(x = x, y = y)
   if (aslatlong) {
     xy <- sf::st_as_sf(xy, coords = c("x", "y"),
@@ -840,10 +852,23 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE) {
   rv<-rast(climdata[[1]])
   dfout<-data.frame(V1=as.POSIXlt(time(rv)))
   for (i in 1:9) {
-    rv<-rast(climdata[[i]])
+    rv<-climdata[[i]]
     dfout[,i+1]<-as.numeric(extract(rv, xy))[-1]
   }
   names(dfout)<-c("obs_time",names(climdata))
+  
+  # apply altitudinal correction
+  if(altcorrect>0) {
+    # check crs
+    checkCRS<-crs(r)==crs(dtmc)
+    if(!checkCRS) dtmc<-project(dtmc, r)
+    
+    dtmc_p <- terra::extract(dtmc, xy)[1,2]
+    elev_p<-extract(elev, xy)[1,2]
+    .altcorrectp(dfout, dtmc_p, elev_p, altcor=altcorrect)
+    
+  }
+  
   return(dfout)
 }
 #' @title Download UKCP18 climate data, including future climate

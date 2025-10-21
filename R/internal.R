@@ -399,7 +399,7 @@
   crs(rr)<-crs(r)
   rll<-project(rr,"EPSG:4326")
   ell<-ext(rll)
-  for (i in 1:10) rlst[[i]]<-crop(rlst[[i]],ell,snap='out')
+  # for (i in 1:10) rlst[[i]]<-crop(rlst[[i]],ell,snap='out')
   if (resampleout) {
     for (i in 1:10) {
       if (crs(r) != crs(rll)) {
@@ -786,3 +786,32 @@
   # }
   return(pai_z2)
 }
+#' @title applies altitudinal correction to climate data for a point
+#' @description This function applies a lapse rate correction to the climdata
+#' dataframe as used by the `micropoint` package based on the difference between the
+#' elevation of the point and the elevation of the era5 data
+#' @param climdata a dataframe of weather variables as output by `climpoint_extract`
+#' @param dtmc a raster of climate data
+#' @import terra
+#' @export
+.altcorrectp<-function(climdata, dtmc_p, elev_p, altcor = 2) {
+  h = nrow(climdata)
+  pk = climdata$pres
+  es = microclimf:::.satvap(climdata$temp)
+  ea = es*climdata$relhum/100
+  tdew = microclimf:::.dewpoint(ea, climdata$temp)
+  psl<-pk/(((293-0.0065*rep(dtmc_p,h))/293)^5.26)
+  pk = psl*(((293-0.0065*rep(elev_p,h))/293)^5.26)
+  elevd = rep(dtmc_p - elev_p, h)
+  
+  if (altcor==1) {  # Fixed lapse rate
+    tcdif<-elevd*(5/1000)
+  } else { # Humidity-dependent lapse rate
+    lr<-microclimf:::.lapserate(climdata$temp,ea,pk)
+    tcdif<-lr*elevd
+  }
+  tc<-tcdif+climdata$temp
+  climdata$temp = tc
+  return(climdata)
+}
+
