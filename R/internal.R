@@ -691,3 +691,98 @@
   r = mask(r, lc)
   return(r)
 }
+#' Get L2B profile including beam number, shot number, quality flag, time, lat, lon, elevation, rh100 (canopy height), pai (total pai), and pai_z. Adapted from rGEDI
+.getL2Bprofile<-function(level2b){
+  level2b<-level2b@h5
+  groups_id<-grep("BEAM\\d{4}$",gsub("/","",
+                                     hdf5r::list.groups(level2b, recursive = F)), value = T)
+  m.dt<-data.table::data.table()
+  pb <- utils::txtProgressBar(min = 0, max = length(groups_id), style = 3)
+  i.s=0
+  for ( i in groups_id){
+    i.s<-i.s+1
+    utils::setTxtProgressBar(pb, i.s)
+    level2b_i<-level2b[[i]]
+    m<-data.table::data.table(
+      beam<-rep(i,length(level2b_i[["shot_number"]][])),
+      shot_number=level2b_i[["shot_number"]][],
+      algorithmrun_flag=level2b_i[["algorithmrun_flag"]][],
+      l2b_quality_flag=level2b_i[["l2b_quality_flag"]][],
+      delta_time=level2b_i[["geolocation/delta_time"]][],
+      lat_lowestmode=level2b_i[["geolocation/lat_lowestmode"]][],
+      lon_lowestmode=level2b_i[["geolocation/lon_lowestmode"]][],
+      elev_lowestmode=level2b_i[["geolocation/elev_lowestmode"]][],
+      rh100 = level2b_i[["rh100"]][],
+      pai = level2b_i[["pai"]][],
+      pai_z=t(level2b_i[["pai_z"]][,1:level2b_i[["pai_z"]]$dims[2]]))
+    m.dt<-rbind(m.dt,m)
+  }
+  colnames(m.dt)<-c("beam","shot_number","algorithmrun_flag",
+                    "l2b_quality_flag","delta_time","lat_lowestmode",
+                    "lon_lowestmode",
+                    "elev_lowestmode", "rh100", "pai",
+                    paste0("pai_z",seq(0,30*5,5)[-31],"_",seq(5,30*5,5),"m"))
+  close(pb)
+  return(m.dt)
+}
+#' PAI vertical profile
+#' Calculate pai vertical profile from gedi data
+#' Values add up to total PAI (for input into micropoint paii argument)
+#'
+#' @param pai_z vector of PAI values at height intervals from 0 to top of canopy (as in gedi data)
+#' @param h height of canopy
+#' @param pai total pai (only need to include if vertpai_method = "pavd")
+#' @param vertpai_method can be "pai" or "pavd". If "pai", then vertical foliage profiles are calculated
+#' by finding the difference between cumulative PAI at different heights in the canopy. For example,
+#' the pai in the 0-1m voxel would be calculated as the difference between the pai at 0m (cumulative pai)
+#' and the pai at 1m (where this represents the PAI from the top of the canopy down to 1m). If "pavd", then
+#' vertical pai is calculated as proportion of total pai where proportions are determined by the contribution
+#' of pavd in a given layer to the total pavd. These two methods will return slightly different vertical profiles.
+#'
+#' @return PAI profile at 1 m intervals from ground to top of canopy. Values add up to total PAI in gedi data
+.pai_vertprofile = function(pai_z, h, vertpai_method = "pai") {
+  
+  # sum of vertical pai profile must equal total pai for the model to run
+  
+  if(vertpai_method == "pai") {
+    h_int = seq(0,floor(h)+5, 5)
+    # for micropoint to run, need to have paii at least length 10
+    if(h >= 10) {
+      h_int2 = seq(0,floor(h), 1)
+    }
+    if(h<10 & h>1) {
+      h_int2 = seq(0,floor(h), length.out = 10)
+    }
+    if(h<1) {
+      h_int2 = seq(0,plyr::round_any(h,0.01,floor), length.out = 10)
+    }
+    
+    
+    pai_z = pai_z[1:length(h_int)]
+    
+    # apply a monotonically decreasing spline
+    monospline = splinefun(h_int, pai_z, method = "monoH.FC")
+    pai_zspline = monospline(h_int2)
+    pai_z2 = pai_zspline - c(pai_zspline[2:length(pai_zspline)],0)
+  }
+  
+  
+  # We add zero to the list of PAIz values because pai at the top of the canopy = 0 (see paiz description in gedi documentation)
+  
+  # Try using proportion of pavd NOT CURRENTLY FUNCTIONAL USE PAI METHOD
+  # if(vertpai_method == "pavd") {
+  #   h_int = seq(1,floor(h) + 5,5)
+  #   if(h >= 10) {
+  #     h_int2 = seq(0,floor(h), 1)
+  #   }
+  #   if(h<10) {
+  #     h_int2 = seq(0,floor(h), length.out = 10)
+  #   }
+  #   pavd = pavd[1:length(h_int)]
+  #   splinepavd = splinefun(h_int, pavd, method = "monoH.FC")
+  #   pavdspline = splinepavd(h_int2)
+  #   pavdprop = pavdspline/sum(pavdspline)
+  #   pai_z2 = pai*pavdprop
+  # }
+  return(pai_z2)
+}

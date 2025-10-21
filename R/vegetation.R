@@ -793,4 +793,87 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
   class(vegpp) <- "vegparams"
   return(vegpp)
 }
+#' @title Process GEDI data for use in point-based microclimate models
+#'
+#' @description Extracts data from the L2B profile and calculates vertical PAI profile. The sum of the vertical PAI profile = total PAI
 
+#' @param l2b character vector of hd5 files of GEDI L2B data (downloaded using gedi_download)
+#' @param r raster to crop gedi data
+#' @param powerbeam default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams
+#' @param year optional; 4 digit year (YYYY) to filter GEDI data
+#' @param month optional; 2 digit month (MM) to filter GEDI data
+#' @returns a dataframe of vegetation information with the following values
+#' \describe{
+#'   \item{pai}{Total plant area index value}
+#'   \item{pai_z_}{plant area index between z1 to z2 m above ground}
+#' }
+#' @import rGEDI
+#' @export
+gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
+  gedi = list()
+  if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") project(r, "epsg:4326")
+  for(i in 1:length(l2b)) {
+    l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
+                     error = function(e){
+                       message("GEDI file corrupt: redownloading")
+                       return(NA)
+                       })
+    
+    # redownload if the file is corrupt
+    if(!is(l2b_i, "gedi.level2b")) {
+      outdir = paste0(dirname(l2b[i]), "/")
+      bname = basename(l2b[i])
+      fpath = paste0("https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/GEDI02_B.002/",
+                     gsub(".h5", "", bname), "/", bname)
+      gediDownload(fpath, 
+                   outdir = outdir,
+                   overwrite = T)
+      l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
+                       warning = function(e){error("GEDI file corrupt: redownloading")})
+    }
+    
+    l2b_i = .getL2Bprofile(l2b_i)
+    
+    e = ext(r)
+    
+    # filter out poor quality shots and crop to extent in r
+    l2b_i = l2b_i %>% 
+      filter(l2b_quality_flag > 0) %>% 
+      filter(lon_lowestmode >= e[1] & lon_lowestmode <= e[2] & lat_lowestmode >= e[3] & lat_lowestmode <= e[4]) %>% 
+      # see l2b data dictionary for calculation of shot time
+      mutate(shot_time = as.POSIXlt("2018-01-01") + delta_time,
+             # convert rh100 from cm to m
+             rh100 = rh100/100)
+    
+    
+    # filter to power beams, year, and month if requested
+    if(powerbeam) {
+      l2b_i = l2b_i %>% 
+        filter(beam == "BEAM0101" | beam == "BEAM0110" | beam == "BEAM1000" | beam == "BEAM1011")
+    }
+    if(!is.null(yr)) {
+      l2b_i[, yr := year(shot_time)]
+      l2b_i[, mth := month(shot_time)]
+      l2b_i = l2b_i[yr==yr,]
+      l2b_i = l2b_i[mth==mth,]
+    }
+    
+    # calculate vertical profile for use in run_micropoint. sum of the profile = total PAI (run check before running micropoint)
+    # to prevent R crashing
+    if(nrow(l2b_i)>0) {
+      pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
+      l2b_i[, pai_profile := list(list(.pai_vertprofile(unlist(.SD[, pai_cols, with = FALSE]), rh100))), by = seq_len(nrow(l2b_i))]
+      gedi[[paste0(i)]] = l2b_i
+    }
+  }
+  return(gedi)
+}
+  
+  
+  
+  
+  
+  
+  
+  
+  
