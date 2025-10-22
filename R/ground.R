@@ -255,6 +255,8 @@ albedo_download<-function(r, tme, pathout, credentials) {
 #' @rdname albedo_process
 albedo_process<-function(r, pathin)  {
   lst <- list.files(pathin)
+  tempdir = paste0(getwd(), "/tempdir/", sample(1:10000, 1), "/")
+  dir.create(tempdir, recursive = T)
   if (length(lst) > 0) {
     pb <- utils::txtProgressBar(min = 0, max = length(lst) + 1, style = 3)
     fi <- paste0(pathin, lst[1])
@@ -269,22 +271,27 @@ albedo_process<-function(r, pathin)  {
     e$ymin <- e$ymin - 1000
     e$ymax <- e$ymax + 1000
     modr <- extend(modr, e)
-    modr <- crop(modr, e)
+    modr <- crop(modr, e, filename = paste0(tempdir, varnames(modr), ".tif"), overwrite = T)
     utils::setTxtProgressBar(pb, 1)
     for (i in 2:length(lst)) {
       fi <- paste0(pathin, lst[i])
       mr <- rast(fi)[[30]]
       mr <- extend(mr, e)
-      mr <- crop(mr, e)
-      modr <- c(modr, mr)
+      mr <- crop(mr, e, filename = paste0(tempdir, varnames(mr), ".tif"), overwrite = T)
+      rm(mr)
+      gc()
+      # modr <- c(modr, mr)
       utils::setTxtProgressBar(pb, i)
     }
+    f = list.files(tempdir, full.names = T)
+    modr = rast(f)
   } else stop("No files to process!")
   m <- apply3D(as.array(modr))
   albedo <- .rast(m, modr)
   albedo <- project(albedo, crs(r))
   albedo <-crop(albedo, ext(r))
   utils::setTxtProgressBar(pb, i + 1)
+  unlink(tempdir, recursive = T)
   return(albedo)
 }
 #' @title Derives albedo from aerial photographs
