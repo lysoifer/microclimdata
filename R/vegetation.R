@@ -853,19 +853,30 @@ gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
     }
     if(!is.null(yr)) {
       l2b_i[, yr := year(shot_time)]
-      l2b_i[, mth := month(shot_time)]
       l2b_i = l2b_i[yr==yr,]
+    }
+    if(!is.null(mth)) {
+      l2b_i[, mth := month(shot_time)]
       l2b_i = l2b_i[mth==mth,]
     }
     
+   
     # calculate vertical profile for use in run_micropoint. sum of the profile = total PAI (run check before running micropoint)
     # to prevent R crashing
     if(nrow(l2b_i)>0) {
       pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
-      l2b_i[, pai_profile := list(list(.pai_vertprofile(unlist(.SD[, pai_cols, with = FALSE]), rh100))), by = seq_len(nrow(l2b_i))]
-      gedi[[paste0(i)]] = l2b_i
+      paiz = l2b_i[,.SD, .SDcols = pai_cols]
+      paiz = apply(paiz, 1, as.list)
+      paiz = lapply(paiz, unlist)
+      h = l2b_i[,rh100]
+      pai = l2b_i[,pai]
+      vertprofile = mapply(.pai_vertprofile, paiz, h, pai, SIMPLIFY = F)
+      l2b_i$hz = lapply(vertprofile, function(x){unlist(x[,1])})
+      l2b_i$paiz = lapply(vertprofile, function(x){unlist(x[,2])})
+      gedi[[i]] = l2b_i
     }
   }
+  gedi = bind_rows(gedi)
   return(gedi)
 }
   
