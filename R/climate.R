@@ -853,7 +853,7 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
   dfout<-data.frame(V1=as.POSIXlt(time(rv)))
   for (i in 1:9) {
     rv<-climdata[[i]]
-    dfout[,i+1]<-as.numeric(extract(rv, xy))[-1]
+    dfout[,i+1]<-as.numeric(terra::extract(rv, xy))[-1]
   }
   names(dfout)<-c("obs_time",names(climdata))
   
@@ -864,8 +864,8 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
     if(!checkCRS) dtmc<-project(dtmc, r)
     
     dtmc_p <- terra::extract(dtmc, xy)[1,2]
-    elev_p<-extract(elev, xy)[1,2]
-    .altcorrectp(dfout, dtmc_p, elev_p, altcor=altcorrect)
+    elev_p<-terra::extract(elev, xy)[1,2]
+    dfout = .altcorrectp(dfout, dtmc_p, elev_p, altcor=altcorrect)
     
   }
   
