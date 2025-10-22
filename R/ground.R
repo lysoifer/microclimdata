@@ -78,13 +78,15 @@ topo_process<-function(dem, lc, lctype) {
 #' @export
 soildata_download<-function(r, pathdir = getwd(), deletefiles = TRUE) {
   # get bounding box
-  dir.create(pathdir,showWarnings=FALSE)
+  dir.create(pathdir,showWarnings=FALSE, recursive = T)
   e<-ext(r)
+  e<-project(e,from=crs(r), to="epsg:4326")
   subsetx<-paste0("&SUBSET=X(",e$xmin,",",e$xmax,")")
   subsety<-paste0("&SUBSET=Y(",e$ymin,",",e$ymax,")")
   # get subsetting crs
-  crs_info <- crs(r)
-  epsg_code <- sub(".*ID\\[\"EPSG\",(\\d+)\\].*", "\\1", crs_info)
+  # crs_info <- crs(r)
+  # epsg_code <- sub(".*ID\\[\"EPSG\",(\\d+)\\].*", "\\1", crs_info)
+  epsg_code <- "4326"
   subsetcrs<-paste0("&SUBSETTINGCRS=http://www.opengis.net/def/crs/EPSG/0/",epsg_code)
   outcrs<-paste0("&OUTPUTCRS=http://www.opengis.net/def/crs/EPSG/0/",epsg_code)
   # datasets
