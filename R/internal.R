@@ -740,7 +740,7 @@
 #' of pavd in a given layer to the total pavd. These two methods will return slightly different vertical profiles.
 #'
 #' @return PAI profile at 1 m intervals from ground to top of canopy. Values add up to total PAI in gedi data
-.pai_vertprofile = function(pai_z, h, vertpai_method = "pai") {
+.pai_vertprofile = function(pai_z, h, pai, vertpai_method = "pai") {
   
   # sum of vertical pai profile must equal total pai for the model to run
   
@@ -764,6 +764,7 @@
     monospline = splinefun(h_int, pai_z, method = "monoH.FC")
     pai_zspline = monospline(h_int2)
     pai_z2 = pai_zspline - c(pai_zspline[2:length(pai_zspline)],0)
+    vertprof = data.frame(h = h_int2, paiz = pai_z2, pai_total = pai, canopy_height = h)
   }
   
   
@@ -784,7 +785,7 @@
   #   pavdprop = pavdspline/sum(pavdspline)
   #   pai_z2 = pai*pavdprop
   # }
-  return(pai_z2)
+  return(vertprof)
 }
 #' @title applies altitudinal correction to climate data for a point
 #' @description This function applies a lapse rate correction to the climdata
@@ -812,6 +813,7 @@
   }
   tc<-tcdif+climdata$temp
   climdata$temp = tc
+  climdata$pres = pk
   return(climdata)
 }
 
