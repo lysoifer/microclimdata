@@ -88,7 +88,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   # download data
   dir.create(pathout,showWarnings=FALSE)
   if(length(req2) != 0) {
-    mcera5::request_era5(request = req2, uid = uid, out_path = pathout, overwrite = T)
+    mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
   }
   
   # remove the zip file if clean == TRUE
@@ -828,14 +828,14 @@ sst_download<-function(r, tme, resampleout = "FALSE", nafill = "FALSE") {
 #' humidity dependent lapse rate correction
 #' @param dtmc raster of era5 elevation data (optional; only needed if altcorrect>0)
 #' @param elev raster of elevation (optional; only needed if altcorrect>0)
+#' @param proj
 #' @import terra
 #' @export
-climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtmc, elev) {
+climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtmc, elev, proj) {
   r<-rast(climdata[[1]])[[1]]
   # ensure crs matches
   if(crs(r) != crs(elev)) {
     for(i in 1:9) {
-      test = extend(climdata[[1]],1)
       climdata[[i]] = project(climdata[[i]], crs(elev))
     }
     r<-rast(climdata[[1]])[[1]]
@@ -865,11 +865,23 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
     
     dtmc_p <- terra::extract(dtmc, xy)[1,2]
     elev_p<-terra::extract(elev, xy)[1,2]
-    dfout = .altcorrectp(dfout, dtmc_p, elev_p, altcor=altcorrect)
+    climdat = .altcorrectp(dfout, dtmc_p, elev_p, altcor=altcorrect)
     
   }
   
-  return(dfout)
+  # ensure climate data covers full days
+  mintime = min(climdat$obs_time)
+  while(hour(mintime) != 0) {
+    climdat = climdat[-1,]
+    mintime = min(climdat$obs_time)
+  }
+  maxtime = max(climdat$obs_time)
+  while(hour(maxtime) != 23) {
+    climdat = climdat[-nrow(climdat),]
+    maxtime = max(climdat$obs_time)
+  }
+  
+  return(climdat)
 }
 #' @title Download UKCP18 climate data, including future climate
 #' @description The function downloads specified data from ftp.ceda.ac.uk to a specified directory

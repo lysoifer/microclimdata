@@ -788,11 +788,63 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
                 lref = extract(refldata$lref, xy)[,2],
                 ltra = extract(leaft, xy)[,2],
                 leafd = extract(leafd, xy)[,2],
+                em = 0.97,
                 gsmax = extract(gsmax, xy)[,2],
                 q50 = 100)
   class(vegpp) <- "vegparams"
   return(vegpp)
 }
+#' @title Create vegetation inputs for point model from create_veggrid output
+#'
+#' @description Creates an object of class vegparams used as an input to `micropoint`.
+
+#' @param veggrid output of [create_veggrid()]. Can be unwrapped to save a step when processing many points
+#' @param lat latitude
+#' @param long longitude
+#' @param llcrs the crs of lat,long coordinates
+#' @param gediout optionally, single row of output from gedi_process for the point of interest.
+#' Used to replace pai and canopy height outputs in veggrid
+#' @returns an object of class `vegparams`, namely a list of the following objects:
+#' \describe{
+#'   \item{pai}{Plant area index value}
+#'   \item{hgt}{Vegetation height (m)}
+#'   \item{x}{Ratio of vertical to horizontal projection of leaf foliage}
+#'   \item{gsmax}{Maximum stomatal conductances (mol / m^2 / s)}
+#'   \item{leafr}{Leaf reflectance}
+#'   \item{clump}{Value between 0 and 1 indicating the fraction of radiation passing through larger gaps in the canopy}
+#'   \item{leafd}{Leaf diameter (m)}
+#'   \item{leaft}{Leaf transmittance}
+#' }
+#' @import terra
+#' @export
+#' @rdname create_vegpoint
+vegpfromgrid <- function(veggrid, lat, long, llcrs, gediout=NULL) {
+  if(is(veggrid, "vegparams")) {
+    veggrid = lapply(veggrid, unwrap)
+  } 
+  veggrid = rast(veggrid)
+  pt = data.frame(lon=long, lat=lat)
+  pt = vect(pt, crs = llcrs)
+  pt = project(pt, veggrid[[1]])
+  pt = terra::extract(veggrid, pt)
+  vegpp <- list(h = pt$hgt,
+                pai = pt$pai,
+                x = pt$x,
+                clump = pt$clump,
+                lref = pt$leafr,
+                ltra = pt$leaft,
+                leafd = pt$leafd,
+                em = 0.97,
+                gsmax = pt$gsmax,
+                q50 = 100)
+  if(!is.null(gediout)) {
+    vegpp$pai = gediout$pai
+    vegpp$h = gediout$rh100
+  }
+  class(vegpp) <- "vegparams"
+  return(vegpp)
+}
+
 #' @title Process GEDI data for use in point-based microclimate models
 #'
 #' @description Extracts data from the L2B profile and calculates vertical PAI profile. The sum of the vertical PAI profile = total PAI
@@ -800,8 +852,8 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @param l2b character vector of hd5 files of GEDI L2B data (downloaded using gedi_download)
 #' @param r raster to crop gedi data
 #' @param powerbeam default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams
-#' @param year optional; 4 digit year (YYYY) to filter GEDI data
-#' @param month optional; 2 digit month (MM) to filter GEDI data
+#' @param yr optional; 4 digit year (YYYY) to filter GEDI data
+#' @param mth optional; 2 digit month (MM) to filter GEDI data
 #' @returns a dataframe of vegetation information with the following values
 #' \describe{
 #'   \item{pai}{Total plant area index value}
@@ -811,7 +863,7 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @export
 gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
   gedi = list()
-  if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") project(r, "epsg:4326")
+  if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
     l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
                      error = function(e){

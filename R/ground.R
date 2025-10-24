@@ -487,9 +487,9 @@ create_soilgrid <- function(soildata, refldata, landcover, water = 80) {
   class(soilp) <- "soilcharac"
   return(soilp)
 }
-#' @title Create vegetation inputs for grid model
+#' @title Create ground inputs for point model
 #'
-#' @description Creates an object of class vegparams used as an input to `micropoint`
+#' @description Creates an object of class groundparams used as an input to `micropoint`
 #'
 #' @param soildata a multilayer SpatRaster of soil data as returned by [soildata_download()].
 #' @param refldata a list of ground and leaf reflectances as returned by [reflectance_calc()].
@@ -567,4 +567,68 @@ create_soilpoint <- function(soildata, refldata, dtm, landcover, lat = NA, long 
   class(groundp) <- "groundparams"
   return(groundp)
 }
-
+#' @title Create ground inputs for point model from soilgrid
+#'
+#' @description Creates an object of class groundparams used as an input to `micropoint`
+#'
+#' @param soilgrid the output of [create_soilgrid()]. Can be a list of unpacked spatRasters to reduce
+#' the extra step of unwrapping when running the model for many points
+#' @param topo output of topo_process (spatraster with layers for elevation, slope, and aspect)
+#' @param lat latitude 
+#' @param long longitude
+#' @param llcrs the crs of long, lat coordinates
+#' @details If `lat` and `long` are unspecified, point data are selelected for
+#' the location and the centre of supplied `landcover`.
+#' @returns an object of class `groundparams`, namely a list of the following objects:
+#' \describe{
+#'   \item{gref}{ground reflectance}
+#'   \item{slope}{slope of ground surface (deg)}
+#'   \item{aspect}{aspect of ground surface (deg from north)}
+#'   \item{em}{emissivity of ground surface}
+#'   \item{rho}{Soil bulk density (Mg / m^3)}
+#'   \item{Vm}{Volumetric mineral fraction of soil}
+#'   \item{Vq}{Volumetric quartz fraction of soil}
+#'   \item{Mc}{Mass fraction of clay}
+#'   \item{b}{Shape parameter for Campbell soil moisture model}
+#'   \item{Psie}{Matric potential (J / m^3)}
+#'   \item{Smax}{Volumetric water content at saturation}
+#'   \item{Smin}{Residual water content}
+#'   \item{alpha}{Shape parameter of the van Genuchten model (cm^-1)}
+#'   \item{n}{Pore size distribution parameter}
+#'   \item{Ksat}{Saturated hydraulic conductivity (cm / day)}
+#' }
+#' @import terra
+#' @import httr
+#' @export
+#' @rdname create_soilpoint
+soilpfromgrid <- function(soilgrid, topo, lat, long, llcrs) {
+  if(is(soilgrid, "groundparams")) {
+    veggrid = lapply(soilgrid, unwrap)
+  } 
+  soilgrid = rast(soilgrid)
+  pt = data.frame(lon=long, lat=lat)
+  pt = vect(pt, crs = llcrs)
+  pt = project(pt, soilgrid[[1]])
+  psoil = terra::extract(soilgrid, pt)
+  ptopo = terra::extract(topo, pt)
+  groundp <- list(gref = psoil$groundr,
+                  slope = ptopo$slp,
+                  aspect = ptopo$asp,
+                  em = 0.97,
+                  rho = psoil$rho,
+                  Vm = psoil$Vm,
+                  Vq = psoil$Vq,
+                  Mc = psoil$Mc)
+  
+  # get additional variables
+  soilt = psoil$soiltype
+  groundp$b <- soiltable$b[soilt]
+  groundp$Psie <- -soiltable$psi_e[soilt]
+  groundp$Smax <- soiltable$Smax[soilt]
+  groundp$Smin <- soiltable$Smin[soilt]
+  groundp$alpha <- soiltable$alpha[soilt]
+  groundp$n <- soiltable$n[soilt]
+  groundp$Ksat <- soiltable$Ksat[soilt]
+  class(groundp) <- "groundparams"
+  return(groundp)
+}
