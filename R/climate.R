@@ -95,7 +95,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   if(clean) {
     fpaths = paste0(pathout,sapply(req, "[[", "target"))
     for(i in fpaths) {
-      if(file.exists(i) unlink(i)
+      if(file.exists(i)) unlink(i)
     }
   }
   
