@@ -399,13 +399,13 @@
   crs(rr)<-crs(r)
   rll<-project(rr,"EPSG:4326")
   ell<-ext(rll)
-  # for (i in 1:10) rlst[[i]]<-crop(rlst[[i]],ell,snap='out')
+  for (i in 1:10) rlst[[i]]<-crop(rlst[[i]],ell,snap='out')
   if (resampleout) {
     for (i in 1:10) {
       if (crs(r) != crs(rll)) {
-        rlst[[i]]<-project(rlst[[i]],r)
+        rlst[[i]]<-project(rlst[[i]],r, method="cubic")
       } else {
-        rlst[[i]]<-resample(rlst[[i]],r, method = "cubic")
+         rlst[[i]]<-resample(rlst[[i]],r, method = "cubic")
       }
       rlst[[i]]<-mask(rlst[[i]],r)
     }
@@ -816,4 +816,68 @@
   climdata$pres = pk
   return(climdata)
 }
+.focal_dist <- function(long, lat, margin = .25) {
+  # round to nearest margin
+  x_r <- plyr::round_any(long, margin)
+  y_r <- plyr::round_any(lat, margin)
+  # work out locations of the four neighbour points in the ERA5 dataset
+  if (long >= x_r) {
+    focal_x <- c(x_r, x_r, x_r + margin, x_r + margin)
+  } else {
+    focal_x <- c(x_r - margin, x_r - margin, x_r, x_r)
+  }
+  if (lat >= y_r) {
+    focal_y <- c(y_r, y_r + margin, y_r, y_r + margin)
+  } else {
+    focal_y <- c(y_r - margin, y_r, y_r - margin, y_r)
+  }
+  # work out weighting based on dist between input & 4 surrounding points
+  x_dist <- abs(long - focal_x)
+  y_dist <- abs(lat - focal_y)
+  xy_dist <- sqrt(x_dist^2 + y_dist^2)
+  
+  focal <- data.frame(x = focal_x, y = focal_y, xy_dist) %>%
+    mutate(test = (1/xy_dist)/sum(1/xy_dist)) %>% 
+    dplyr::mutate(., inverse_weight = 1 / sum(1 / (1 / sum(xy_dist) * xy_dist)) * 1 / (1 / sum(xy_dist) * xy_dist))
+  return(focal)
+}
 
+
+
+#' climdata distance weight
+#' Apply distance weighting to point climate data extracted from era5 grid
+#'
+#' @param lon decimal longitude
+#' @param lat decimal latitude
+#' @param climr list of spatrasters of climate variables (output of mcera5::extract_clima)
+#' @param tme POSIX vector of hourly times represented in climr
+#'
+#' @return dataframe of climate variables for input to micropoint::runmicropoint
+.clim_distweight = function(lon, lat, climr, tme) {
+  # distance to nearest era5 points
+  focal = mcera5:::focal_dist(lon, lat, margin = res(climr[[1]])[1])
+  focal_collect = list()
+  
+  nms = names(climr)
+  
+  
+  # get climate data at four cells nearest focal point
+  clim_point = matrix(nrow = length(tme), ncol = length(climr))
+  for(c in 1:length(climr)) {
+    df = terra::extract(climr[[c]], focal[,c('x', 'y')])
+    colnames(df)[2:ncol(df)] = as.character(tme)
+    wm = apply(df, 2, weighted.mean, iw$inverse_weight)[2:ncol(df)]
+    clim_point[,c] = wm
+  }
+  clim_point = cbind(tme, as.data.frame(clim_point))
+  colnames(clim_point) = c("obs_time", names(climr))
+  clim_point$obs_time = as.POSIXct(clim_point$obs_time)
+  
+  # convert negative precip to 0
+  if(sum(clim_point$precip < 0) > 0) {
+    clim_point$precip[clim_point$precip<0] = 0
+    warning("Negative precipitation values converted to zero")
+  }
+  
+  return(clim_point)
+}
