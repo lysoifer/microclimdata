@@ -95,7 +95,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   if(clean) {
     fpaths = paste0(pathout,sapply(req, "[[", "target"))
     for(i in fpaths) {
-      if(file.exists(fpaths[i])) unlink(fpaths[i])
+      if(file.exists(i) unlink(i)
     }
   }
   
@@ -828,40 +828,64 @@ sst_download<-function(r, tme, resampleout = "FALSE", nafill = "FALSE") {
 #' humidity dependent lapse rate correction
 #' @param dtmc raster of era5 elevation data (optional; only needed if altcorrect>0)
 #' @param elev raster of elevation (optional; only needed if altcorrect>0)
-#' @param proj
+#' @param proj if TRUE and climdata is not in a projected crs, reproject
+#' @param distweight if TRUE applies inverse distance weighting using 4 nearest cells to point
+#' when extracting climate data
 #' @import terra
 #' @export
-climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtmc, elev, proj) {
+climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtmc, elev, proj=FALSE, distweight=T) {
   r<-rast(climdata[[1]])[[1]]
   # ensure crs matches
-  if(crs(r) != crs(elev)) {
-    for(i in 1:9) {
-      climdata[[i]] = project(climdata[[i]], crs(elev))
+  # make sure climate data is in the right crs
+  if(proj) {
+    if(crs(r) != crs(elev)) {
+      for(i in 1:9) {
+        climdata[[i]] = project(climdata[[i]], crs(elev))
+      }
     }
-    r<-rast(climdata[[1]])[[1]]
   }
-  xy <- data.frame(x = x, y = y)
-  if (aslatlong) {
-    xy <- sf::st_as_sf(xy, coords = c("x", "y"),
-                       crs = 4326)
-    xy <- sf::st_transform(xy, crs(r))
+  # make sure xy is in the right crs
+  if(aslatlong & proj) {
+    xy <- vect(data.frame(x=x, y=y), geom = c('x', 'y'), crs="epsg:4326")
+    xy <- project(xy, crs(elev))
+  } else if (!aslatlong & !proj) {
+    xy <- vect(data.frame(x=x, y=y), geom = c('x', 'y'), crs=crs(elev))
+    xy <- project(xy, crs(climdata[[1]]))
+  } else if (aslatlong & !proj) {
+    xy = vect(data.frame(x=x, y=y), geom = c('x', 'y'), crs="epsg:4326")
   } else {
-    xy <- sf::st_as_sf(xy, coords = c("x", "y"),
-                       crs = crs(r))
+    xy = vect(data.frame(x=x, y=y), geom = c('x', 'y'), crs=crs(elev))
   }
+
+  # xy <- data.frame(x = x, y = y)
+  # if (aslatlong) {
+  #   xy <- sf::st_as_sf(xy, coords = c("x", "y"),
+  #                      crs = 4326)
+  #   xy <- sf::st_transform(xy, crs(r))
+  # } else {
+  #   xy <- sf::st_as_sf(xy, coords = c("x", "y"),
+  #                      crs = crs(r))
+  # }
   rv<-rast(climdata[[1]])
-  dfout<-data.frame(V1=as.POSIXlt(time(rv)))
-  for (i in 1:9) {
-    rv<-climdata[[i]]
-    dfout[,i+1]<-as.numeric(terra::extract(rv, xy))[-1]
+  if(distweight) {
+    # applies inverse distance weighting using four nearest cells when extracting climate at point
+    dfout<-.clim_distweight(lon = crds(xy)[1], lat=crds(xy)[2], climr = climr, tme = time(rv))
+  } else {
+    dfout<-data.frame(V1=as.POSIXlt(time(rv)))
+    for (i in 1:9) {
+      rv<-climdata[[i]]
+      dfout[,i+1]<-as.numeric(terra::extract(rv, xy))[-1]
+    }
+    names(dfout)<-c("obs_time",names(climdata))
   }
-  names(dfout)<-c("obs_time",names(climdata))
-  
+
   # apply altitudinal correction
   if(altcorrect>0) {
     # check crs
-    checkCRS<-crs(r)==crs(dtmc)
+    checkCRS<-crs(elev)==crs(dtmc)
     if(!checkCRS) dtmc<-project(dtmc, r)
+    checkCRS<-crs(xy)==crs(elev)
+    if(!checkCRS) xy<-project(xy, crs(elev))
     
     dtmc_p <- terra::extract(dtmc, xy)[1,2]
     elev_p<-terra::extract(elev, xy)[1,2]
