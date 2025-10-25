@@ -883,7 +883,7 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
   if(altcorrect>0) {
     # check crs
     checkCRS<-crs(elev)==crs(dtmc)
-    if(!checkCRS) dtmc<-project(dtmc, r)
+    if(!checkCRS) dtmc<-project(dtmc, elev)
     checkCRS<-crs(xy)==crs(elev)
     if(!checkCRS) xy<-project(xy, crs(elev))
     
