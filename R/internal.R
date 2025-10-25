@@ -816,6 +816,8 @@
   climdata$pres = pk
   return(climdata)
 }
+# find 4 nearest cells and calculate inverse distance weight from point
+# adapted from mcera5:::focal_dist
 .focal_dist <- function(long, lat, margin = .25) {
   # round to nearest margin
   x_r <- plyr::round_any(long, margin)
@@ -837,8 +839,7 @@
   xy_dist <- sqrt(x_dist^2 + y_dist^2)
   
   focal <- data.frame(x = focal_x, y = focal_y, xy_dist) %>%
-    mutate(test = (1/xy_dist)/sum(1/xy_dist)) %>% 
-    dplyr::mutate(., inverse_weight = 1 / sum(1 / (1 / sum(xy_dist) * xy_dist)) * 1 / (1 / sum(xy_dist) * xy_dist))
+    mutate(test = (1/xy_dist)/sum(1/xy_dist))
   return(focal)
 }
 
@@ -855,7 +856,7 @@
 #' @return dataframe of climate variables for input to micropoint::runmicropoint
 .clim_distweight = function(lon, lat, climr, tme) {
   # distance to nearest era5 points
-  focal = mcera5:::focal_dist(lon, lat, margin = res(climr[[1]])[1])
+  focal = .focal_dist(lon, lat, margin = res(climr[[1]])[1])
   focal_collect = list()
   
   nms = names(climr)
