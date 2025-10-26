@@ -905,26 +905,24 @@ gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
         crop(sv) %>% 
         as.data.table()
     }
-    
-    
-    # filter to power beams, year, and month if requested
-    if(powerbeam) {
-      l2b_i = l2b_i %>% 
-        filter(beam == "BEAM0101" | beam == "BEAM0110" | beam == "BEAM1000" | beam == "BEAM1011")
-    }
-    if(!is.null(yr)) {
-      l2b_i[, yr := year(shot_time)]
-      l2b_i = l2b_i[yr==yr,]
-    }
-    if(!is.null(mth)) {
-      l2b_i[, mth := month(shot_time)]
-      l2b_i = l2b_i[mth==mth,]
-    }
-    
    
     # calculate vertical profile for use in run_micropoint. sum of the profile = total PAI (run check before running micropoint)
     # to prevent R crashing
     if(nrow(l2b_i)>0) {
+      # filter to power beams, year, and month if requested
+      if(powerbeam) {
+        l2b_i = l2b_i %>% 
+          filter(beam == "BEAM0101" | beam == "BEAM0110" | beam == "BEAM1000" | beam == "BEAM1011")
+      }
+      if(!is.null(yr)) {
+        l2b_i[, yr := year(shot_time)]
+        l2b_i = l2b_i[yr==yr,]
+      }
+      if(!is.null(mth)) {
+        l2b_i[, mth := month(shot_time)]
+        l2b_i = l2b_i[mth==mth,]
+      }
+      
       l2b_i = as.data.frame(l2b_i)
       pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
       paiz = l2b_i[, pai_cols]
