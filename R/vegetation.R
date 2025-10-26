@@ -818,7 +818,7 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @import terra
 #' @export
 #' @rdname create_vegpoint
-vegpfromgrid <- function(veggrid, lat, long, llcrs, gediout=NULL) {
+vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
   if(is(veggrid, "vegparams")) {
     veggrid = lapply(veggrid, unwrap)
   } 
@@ -839,7 +839,7 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, gediout=NULL) {
                 q50 = 100)
   if(!is.null(gediout)) {
     vegpp$pai = gediout$pai
-    vegpp$h = gediout$rh100
+    vegpp$h = gediout$ch
   }
   class(vegpp) <- "vegparams"
   return(vegpp)
