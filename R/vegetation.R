@@ -902,7 +902,7 @@ gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
     if(!is.null(sv)) {
       l2b_i = l2b_i %>% 
         vect(geom = c("lon_lowestmode", "lat_lowestmode"), crs = "epsg:4326", keepgeom=T) %>% 
-        crop(gedicrop) %>% 
+        crop(sv) %>% 
         as.data.table()
     }
     
