@@ -850,7 +850,8 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
 #' @description Extracts data from the L2B profile and calculates vertical PAI profile. The sum of the vertical PAI profile = total PAI
 
 #' @param l2b character vector of hd5 files of GEDI L2B data (downloaded using gedi_download)
-#' @param r raster to crop gedi data
+#' @param r spatRaster or spatVector to crop gedi data
+#' @param sv optionally; provide a spatvector to further crop the gedi data
 #' @param powerbeam default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams
 #' @param yr optional; 4 digit year (YYYY) to filter GEDI data
 #' @param mth optional; 2 digit month (MM) to filter GEDI data
@@ -861,7 +862,7 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
 #' }
 #' @import rGEDI
 #' @export
-gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
+gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
   gedi = list()
   if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
@@ -887,6 +888,7 @@ gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
     l2b_i = .getL2Bprofile(l2b_i)
     
     e = ext(r)
+    e = project(e, from=crs(r), to="epsg:4326")
     
     # filter out poor quality shots and crop to extent in r
     l2b_i = l2b_i %>% 
@@ -896,6 +898,13 @@ gedi_process<-function(l2b, r, powerbeam=TRUE, yr=NULL, mth=NULL) {
       mutate(shot_time = as.POSIXlt("2018-01-01") + delta_time,
              # convert rh100 from cm to m
              rh100 = rh100/100)
+    
+    if(!is.null(sv)) {
+      l2b_i = l2b_i %>% 
+        vect(geom = c("lon_lowestmode", "lat_lowestmode"), crs = "epsg:4326", keepgeom=T) %>% 
+        crop(gedicrop) %>% 
+        as.data.table()
+    }
     
     
     # filter to power beams, year, and month if requested
