@@ -925,8 +925,9 @@ gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
     # calculate vertical profile for use in run_micropoint. sum of the profile = total PAI (run check before running micropoint)
     # to prevent R crashing
     if(nrow(l2b_i)>0) {
+      l2b_i = as.data.frame(l2b_i)
       pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
-      paiz = l2b_i[,.SD, .SDcols = pai_cols]
+      paiz = l2b_i[, pai_cols]
       paiz = apply(paiz, 1, as.list)
       paiz = lapply(paiz, unlist)
       h = as.vector(l2b_i[,"rh100"])
