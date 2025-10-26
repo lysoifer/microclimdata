@@ -929,8 +929,8 @@ gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
       paiz = l2b_i[,.SD, .SDcols = pai_cols]
       paiz = apply(paiz, 1, as.list)
       paiz = lapply(paiz, unlist)
-      h = l2b_i[,rh100]
-      pai = l2b_i[,pai]
+      h = as.vector(l2b_i[,"rh100"])
+      pai = as.vector(l2b_i[,"pai"])
       vertprofile = mapply(.pai_vertprofile, paiz, h, pai, SIMPLIFY = F)
       l2b_i$hz = lapply(vertprofile, function(x){unlist(x[,1])})
       l2b_i$paiz = lapply(vertprofile, function(x){unlist(x[,2])})
