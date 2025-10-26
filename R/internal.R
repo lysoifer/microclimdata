@@ -839,7 +839,7 @@
   xy_dist <- sqrt(x_dist^2 + y_dist^2)
   
   focal <- data.frame(x = focal_x, y = focal_y, xy_dist) %>%
-    mutate(test = (1/xy_dist)/sum(1/xy_dist))
+    mutate(iw = (1/xy_dist)/sum(1/xy_dist))
   return(focal)
 }
 
@@ -867,7 +867,7 @@
   for(c in 1:length(climr)) {
     df = terra::extract(climr[[c]], focal[,c('x', 'y')])
     colnames(df)[2:ncol(df)] = as.character(tme)
-    wm = apply(df, 2, weighted.mean, iw$inverse_weight)[2:ncol(df)]
+    wm = apply(df, 2, weighted.mean, focal$iw)[2:ncol(df)]
     clim_point[,c] = wm
   }
   clim_point = cbind(tme, as.data.frame(clim_point))
