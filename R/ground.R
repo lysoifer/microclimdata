@@ -48,10 +48,10 @@ dem_download<-function(r, msk = TRUE, zeroasna = FALSE) {
 #' @export
 topo_process<-function(dem, lc, lctype) {
   # calculate aspect and slope
-  asp = terra::terrain(elev, "aspect", unit = "degrees")
-  slp = terra::terrain(elev, "slope", unit = "degrees")
+  asp = terra::terrain(dem, "aspect", unit = "degrees")
+  slp = terra::terrain(dem, "slope", unit = "degrees")
   
-  topo = c(elev, asp, slp)
+  topo = c(dem, asp, slp)
   names(topo) = c("elev", "asp", "slp")
   
   # mask elevation out negative elevation (water)
