@@ -864,7 +864,7 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
 #' @export
 gedi_process<-function(l2b, r, sv, powerbeam=TRUE, yr=NULL, mth=NULL) {
   gedi = list()
-  if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
+  # if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
     l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
                      error = function(e){
