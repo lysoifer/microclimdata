@@ -802,8 +802,9 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @param lat latitude
 #' @param long longitude
 #' @param llcrs the crs of lat,long coordinates
-#' @param gediout optionally, single row of output from gedi_process for the point of interest.
-#' Used to replace pai and canopy height outputs in veggrid
+#' @param pai optionally, provide pai at a finer resolution (e.g., pai from gedi)
+#' @param ch optionally, provide canopy height at a finer resolution than veggrid 
+#' (e.g., from gedi or lang et al. 2023)
 #' @returns an object of class `vegparams`, namely a list of the following objects:
 #' \describe{
 #'   \item{pai}{Plant area index value}
@@ -818,7 +819,7 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @import terra
 #' @export
 #' @rdname create_vegpoint
-vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
+vegpfromgrid <- function(veggrid, lat, long, llcrs, pai=NULL, ch=NULL) {
   if(is(veggrid, "vegparams")) {
     veggrid = lapply(veggrid, unwrap)
   } 
@@ -837,10 +838,9 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai, ch) {
                 em = 0.97,
                 gsmax = pt$gsmax,
                 q50 = 100)
-  if(!is.null(gediout)) {
-    vegpp$pai = gediout$pai
-    vegpp$h = gediout$ch
-  }
+  if(!is.null(pai)) vegpp$pai = pai
+  if(!is.null(ch)) vegpp$h = ch
+
   class(vegpp) <- "vegparams"
   return(vegpp)
 }

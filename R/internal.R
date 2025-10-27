@@ -882,3 +882,50 @@
   
   return(clim_point)
 }
+#' @title Calculate the shape of the average vertical profile for a given PAI range and apply the shape to the PAI at the point of interest
+#' @param g dataframe of gedi shots returned from gedi_process
+#' @param dist vector of distances between each gedi point and the point of interest
+#' @param pai the PAI of the point of interest
+.gedi_distweight <- function(g, dist, pai) {
+  g = g[,c("pai", "paiz", "hz", "rh100", "shot_time")]
+  g$id = 1:nrow(g)
+  paizdf = data.frame()
+  for(i in 1:nrow(g)) {
+    paizi = as.numeric(strsplit(g$paiz[i], "\\|")[[1]])
+    hz = as.numeric(strsplit(g$hz[i], "\\|")[[1]])
+    # calculate relative height
+    relhgt = hz/g$rh100[i]
+    # determine proportional pai
+    paiprop = paizi/g$pai[i]
+    # spline to get the proportional pai ever 0.1 relative height
+    splinef = splinefun(relhgt, paiprop, method = "fmm")
+    paizest = splinef(seq(0,1,0.025))
+    paizest = paizest/sum(paizest)
+    
+    dfi = data.frame(paiprop = paizest, relhgt = seq(0,1,0.025), 
+                     dist = dist[i], id = g$id[i])
+    
+    paizdf = rbind(paizdf, dfi)
+  
+  }
+  # calculated weighted average of the proportional pai
+  paizdf = paizdf %>% 
+    group_by(dist, id) %>% 
+    mutate(iw = 1/dist) %>% 
+    ungroup()
+  
+  paizdf = paizdf %>% 
+    group_by(relhgt) %>% 
+    mutate(wgt = iw/sum(iw)) %>% 
+    summarize(paiprop = weighted.mean(paiprop, w = wgt))
+  
+  # use proprtions to get pai profile for the point based on PAI from veggrid
+  paii = pai*paizdf$paiprop
+  
+  return(paii)
+  
+}
+
+
+
+
