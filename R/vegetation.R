@@ -797,6 +797,8 @@ create_vegpoint <- function(landcover, vhgt, lai, refldata, lctype = "ESA", lat 
 #' @title Create vegetation inputs for point model from create_veggrid output
 #'
 #' @description Creates an object of class vegparams used as an input to `micropoint`.
+#' Useful when running point model for a list of points where you have the vegetation grid that
+#' covers all points of interest
 
 #' @param veggrid output of [create_veggrid()]. Can be unwrapped to save a step when processing many points
 #' @param lat latitude

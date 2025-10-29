@@ -885,8 +885,8 @@
 #' @title Calculate the shape of the average vertical profile for a given PAI range and apply the shape to the PAI at the point of interest
 #' @param g dataframe of gedi shots returned from gedi_process
 #' @param dist vector of distances between each gedi point and the point of interest
-#' @param pai the PAI of the point of interest
-.gedi_distweight <- function(g, dist, pai) {
+#' @param vegp vegetation input for the point-based microclimate model (e.g., output of vegpfromgrid)
+.gedi_distweight <- function(g, dist, vegp) {
   g = g[,c("pai", "paiz", "hz", "rh100", "shot_time")]
   g$id = 1:nrow(g)
   paizdf = data.frame()
@@ -920,9 +920,10 @@
     summarize(paiprop = weighted.mean(paiprop, w = wgt))
   
   # use proprtions to get pai profile for the point based on PAI from veggrid
-  paii = pai*paizdf$paiprop
+  paii = vegp$pai*paizdf$paiprop
+  hz = vegp$h*seq(0,1,0.025)
   
-  return(paii)
+  return(list(paii=paii, hz = hz))
   
 }
 
