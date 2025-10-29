@@ -869,7 +869,7 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
   rv<-rast(climdata[[1]])
   if(distweight) {
     # applies inverse distance weighting using four nearest cells when extracting climate at point
-    dfout<-.clim_distweight(lon = crds(xy)[1], lat=crds(xy)[2], climr = climr, tme = time(rv))
+    dfout<-.clim_distweight(lon = crds(xy)[1], lat=crds(xy)[2], climr = climdata, tme = time(rv))
   } else {
     dfout<-data.frame(V1=as.POSIXlt(time(rv)))
     for (i in 1:9) {
