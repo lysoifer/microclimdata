@@ -318,6 +318,11 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
       utils::setTxtProgressBar(pb, i)
       fi<-paste0(pathin,lst[i])
       ri<-rast(fi)[[2]]
+      # assign date to raster
+      d = strsplit(varnames(ri), "\\.")[[1]][2]
+      d = gsub("A", "", d)
+      d = as.POSIXlt(d, format = "%Y%j", tz = "UTC")
+      time(ri) = d
       mskr<-rast(fi)[[4]]
       ri<-mask(ri,mskr)
       if (crs(ri)!=crs(r)) {
@@ -347,13 +352,22 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
         }
       }
     }
-    rma<-ro[[1]]
+    rma = list()
+    m = c()
+    for(a in 1:length(ro)) {m = c(m, month(time(ro[[a]])))}
     if (length(ro) > 1) {
-      for (i in 2:length(ro)) {
-        rr<-ro[[i]]
-        rma<-mosaic(rma,rr)
+      for(mi in 1:12) {
+        idx = which(m==mi)
+        ridx = ro[idx]
+        rmai<-ridx[[1]]
+        for(i in 1:length(ridx)) {
+          rr<-ridx[[i]]
+          rmai<-mosaic(rmai, rr)
+        }# end for
+        rma[[mi]] = rmai
       } # end for
-    }
+    } # end if
+    rma = rast(rma)
     if (msk) {
       rmsk<-resample(r,rma)
       rma<-mask(rma,rmsk)
