@@ -692,7 +692,7 @@
   return(r)
 }
 #' Get L2B profile including beam number, shot number, quality flag, time, lat, lon, elevation, rh100 (canopy height), pai (total pai), and pai_z. Adapted from rGEDI
-.getL2Bprofile<-function(level2b){
+.getL2Bprofile<-function(level2b, clean = T){
   level2b<-level2b@h5
   groups_id<-grep("BEAM\\d{4}$",gsub("/","",
                                      hdf5r::list.groups(level2b, recursive = F)), value = T)
@@ -708,6 +708,8 @@
       shot_number=level2b_i[["shot_number"]][],
       algorithmrun_flag=level2b_i[["algorithmrun_flag"]][],
       l2b_quality_flag=level2b_i[["l2b_quality_flag"]][],
+      l2b_quality_flag=level2b_i[["geolocation/degrade_flag"]][],
+      l2b_quality_flag=level2b_i[["sensitivity"]][],
       delta_time=level2b_i[["geolocation/delta_time"]][],
       lat_lowestmode=level2b_i[["geolocation/lat_lowestmode"]][],
       lon_lowestmode=level2b_i[["geolocation/lon_lowestmode"]][],
@@ -718,12 +720,25 @@
     m.dt<-rbind(m.dt,m)
   }
   colnames(m.dt)<-c("beam","shot_number","algorithmrun_flag",
-                    "l2b_quality_flag","delta_time","lat_lowestmode",
+                    "l2b_quality_flag", "degrade_flag", "sensitivity",
+                    "delta_time","lat_lowestmode",
                     "lon_lowestmode",
                     "elev_lowestmode", "rh100", "pai",
                     paste0("pai_z",seq(0,30*5,5)[-31],"_",seq(5,30*5,5),"m"))
   close(pb)
-  return(m.dt)
+  
+  m.dt = m.dt %>% 
+    filter(l2b_quality_flag==1)
+  nm = level2b$filename
+  nm2 = gsub(".h5", ".csv", nm)
+  fwrite(m.dt, nm2)
+  
+  if(clean) {
+    rm(level2b)
+    unlink(nm)
+  }
+  
+  return(nm2)
 }
 #' PAI vertical profile
 #' Calculate pai vertical profile from gedi data
@@ -927,6 +942,24 @@
   
 }
 
+#' Convert a bounding box to a character vector
+#' @param bbox an object that has a bounding box. Currently restricted to a SpatVector or SpatRaster, but will add functionality for other objects
+#' @param coord_order the order in which coordinates should be output (e.g., "xmin,xmax,ymin,ymax") with no white spaces
+.bbox_to_char = function(bbox, coord_order) {
+  # check object type that bbox is derived from
+  
+  if(is(bbox, "SpatVector") | is(bbox, "SpatRaster")) {
+    e = ext(bbox)
+    e = c(e[1], e[2], e[3], e[4])
+  }
+  
+  c = stringr::str_split_1(coord_order, ",")
+  # reorder vector to requested order
+  e = e[c]
+  e = paste(e, collapse = ",")
+  
+  return(e)
+}
 
 
 
