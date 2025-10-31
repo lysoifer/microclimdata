@@ -1052,6 +1052,7 @@ gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
       l2b_i = .getL2Bprofile(l2b_i, clean)
     }
   } # end for loop
+  l2b = gsub(".h5", ".csv", l2b)
   return(l2b)
 }
 
