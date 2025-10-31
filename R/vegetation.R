@@ -1011,8 +1011,8 @@ gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
   aoi = project(aoi, "epsg:4326")
   if(is(aoi, "SpatVector")) {
     granules = c()
-    for(i in 1:nrow(gedi_aoi)) {
-      g = gedi_finder("GEDI02_B.002", gedi_aoi[i])
+    for(i in 1:nrow(aoi)) {
+      g = gedi_finder("GEDI02_B.002", aoi[i])
       granules = c(granules, g)
     }
   } else {
