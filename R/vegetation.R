@@ -684,12 +684,20 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
   # check geometries
   cp <- compareGeom(landcover, vhgt)
   if (cp) cp <- compareGeom(landcover, lai)
-  if (cp) cp <- compareGeom(landcover, refldata$lref)
-  msk <- landcover * vhgt * lai * refldata$lref
+  if (cp) cp <- compareGeom(landcover, refldata[[1]]$lref)
+  msk <- landcover * vhgt * lai[[1]] * refldata[[1]]$lref
   landcover <- mask(landcover, msk)
   vhgt <- mask(vhgt, msk)
   lai <- mask(lai, msk)
-  refldata$lref <- mask(refldata$lref, msk)
+  # allow list of seasonal reflectance values
+  if(is(refldata, "list")) {
+    for(i in 1:length(refldata)) {
+      refldata[[i]]$lref = mask(refldata[[i]]$lref, msk)
+    }
+  } else {
+    refldata$lref <- mask(refldata$lref, msk)
+  }
+  
   # do lookups from land cover
   u <- unique(as.vector(landcover))
   u <- u[is.na(u) == FALSE]
@@ -711,29 +719,36 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
   nlyrs <- dim(lai)[3]
   clump <- lai * 0
   for (i in 1:nlyrs) {
-    clump[[i]] <- .rast(calcclumpcpp(as.matrix(leafd, wide=TRUE),
+    clump[[i]] <- microclimdata:::.rast(microclimdata:::calcclumpcpp(as.matrix(leafd, wide=TRUE),
                                      as.matrix(vhgt, wide=TRUE),
                                      as.matrix(lai[[i]], wide=TRUE)), x)
   }
-  leafr <- refldata$lref
-  leaft <- refldata$lref / 3
+  leafr = list()
+  leaft = list()
+  for(i in 1:length(refldata)) {
+    leafr[[i]] <- refldata[[i]]$lref
+    leaft[[i]] <- refldata[[i]]$lref / 3    
+  }
+  leafr = rast(leafr)
+  leaft = rast(leaft)
+
   # names
-  names(lai) <- "Plant area index"
+  names(lai) <- rep("Plant area index", nlyr(lai))
   names(vhgt) <- "Vegetation height"
   names(x) <- "Leaf inclination coefficient"
   names(gsmax) <- "Maximum stomatal conductance"
-  names(leafr) <- "Leaf reflectance"
-  names(clump) <- "Clumping coefficient"
+  names(leafr) <- rep("Leaf reflectance", nlyr(leafr))
+  names(clump) <- rep("Clumping coefficient", nlyr(clump))
   names(leafd) <- "Leaf diameter"
-  names(leaft) <- "Leaf transmittance"
+  names(leaft) <- rep("Leaf transmittance", nlyr(leaft))
   vegp <- list(pai = wrap(lai),
                hgt = wrap(vhgt),
                x = wrap(x),
                gsmax = wrap(gsmax),
-               leafr = wrap(refldata$lref),
+               leafr = wrap(leafr),
                clump = wrap(clump),
                leafd = wrap(leafd),
-               leaft = wrap(refldata$lref / 3))
+               leaft = wrap(leaft))
   class(vegp) <- "vegparams"
   return(vegp)
 }
