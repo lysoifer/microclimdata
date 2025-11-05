@@ -719,7 +719,7 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
   nlyrs <- dim(lai)[3]
   clump <- lai * 0
   for (i in 1:nlyrs) {
-    clump[[i]] <- microclimdata:::.rast(microclimdata:::calcclumpcpp(as.matrix(leafd, wide=TRUE),
+    clump[[i]] <- .rast(calcclumpcpp(as.matrix(leafd, wide=TRUE),
                                      as.matrix(vhgt, wide=TRUE),
                                      as.matrix(lai[[i]], wide=TRUE)), x)
   }
