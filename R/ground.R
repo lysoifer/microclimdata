@@ -502,10 +502,13 @@ create_soilgrid <- function(soildata, refldata, landcover, water = 80) {
   # get soil type
   soiltype <- soildata_gettype(soildata)
   names(soiltype) <- "soiltype"
-  names(refldata$gref) <- "gorund reflectance"
+  if(is(refldata, "list")) {
+    gref = rast(lapply(refldata, "[[", 1))
+  } else {gref = relfdata$gref}
+  names(gref) <- rep("gorund reflectance", nlyr(gref))
   organic <- 1 - (soildata$clay + soildata$sand + soildata$silt) /1000
   soilp <- list(soiltype = wrap(soiltype),
-                groundr = wrap(refldata$gref),
+                groundr = wrap(gref),
                 rho = wrap(soildata$bdod / 100),
                 Vm =  wrap((soildata$bdod /265) * (1- organic)),
                 Vq = wrap((soildata$bdod / 265) * ((soildata$sand / 1000) * 0.9
