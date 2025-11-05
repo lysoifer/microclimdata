@@ -285,12 +285,39 @@ albedo_process<-function(r, pathin)  {
       # modr <- c(modr, mr)
       utils::setTxtProgressBar(pb, i)
     }
-    f = list.files(tempdir, full.names = T)
-    modr = rast(f)
   } else stop("No files to process!")
-  m <- apply3D(as.array(modr))
-  albedo <- .rast(m, modr)
-  albedo <- project(albedo, crs(r))
+  
+  # summarize and mosaic tiles
+  f = list.files(tempdir, full.names = T)
+  # get tile and date
+  fsplit = sapply(strsplit(f, "\\/"), "[[", 9)
+  fsplit = lapply(fsplit, strsplit, "\\.")
+  fsplit = lapply(fsplit, "[[", 1)
+  dat = gsub("A", "", sapply(fsplit, "[[", 2))
+  dat = as.POSIXlt(dat, format = "%Y%j", tz = "UTC")
+  mon = month(dat)
+  tile = sapply(fsplit, "[[", 3)
+  modr = list()
+  for(m in unique(mon)) {
+    idx = which(mon==m & tile==tile[1])
+    fidx = f[idx]
+    fidx = rast(fidx)
+    mf <- microclimdata:::apply3D(as.array(fidx))
+    albedo <- microclimdata:::.rast(mf, fidx)
+    if(length(unique(tile)) > 1) {
+      for(t in 2:length(tile)) {
+      idx = which(mon==m & tile==tile[t])
+      fidx = f[idx]
+      fidx = rast(fidx)
+      mf <- apply3D(as.array(fidx))
+      alb <- .rast(mf, fidx)
+      albedo = mosaic(albedo, alb)
+      }
+    }
+    modr[[m]] = albedo
+  }
+  modr = rast(modr)
+  albedo <- project(modr, crs(r))
   albedo <-crop(albedo, ext(r))
   utils::setTxtProgressBar(pb, i + 1)
   unlink(tempdir, recursive = T)
