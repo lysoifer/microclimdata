@@ -961,5 +961,5 @@
   return(e)
 }
 
-
+#' @title distance weighting for PAI within a given buffer
 
