@@ -354,16 +354,18 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
     }
     rma = list()
     m = c()
-    for(a in 1:length(ro)) {m = c(m, month(time(ro[[a]])))}
+    for(a in 1:length(ro)) {m = c(m, paste0(year(time(ro[[a]])), "-", month(time(ro[[a]]))))}
     if (length(ro) > 1) {
-      for(mi in 1:12) {
+      for(mi in unique(m)) {
         idx = which(m==mi)
         ridx = ro[idx]
         rmai<-ridx[[1]]
-        for(i in 1:length(ridx)) {
-          rr<-ridx[[i]]
-          rmai<-mosaic(rmai, rr)
-        }# end for
+        if(length(ridx)>1) {
+          for(i in 2:length(ridx)) {
+            rr<-ridx[[i]]
+            rmai<-mosaic(rmai, rr)
+          }# end for
+        }
         rma[[mi]] = rmai
       } # end for
     } # end if
@@ -371,6 +373,7 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
     if (msk) {
       rmsk<-resample(r,rma)
       rma<-mask(rma,rmsk)
+      rma<-crop(rma, r)
     }
   }
   return(rma)
