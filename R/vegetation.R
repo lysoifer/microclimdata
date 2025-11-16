@@ -277,7 +277,7 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
       re<-rast(e)
       crs(re)<-crs(ri)
       if (crs(r) != crs(re)) re<-project(re,crs(r))
-      oip<-intersect(ext(r),ext(re))
+      oip<-terra::intersect(ext(r),ext(re))
       if (is.null(oip) == FALSE) {
         xx<-suppressWarnings(.chcktif(fi))
         if (is.na(xx) == FALSE) {
@@ -330,7 +330,7 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
         r2<-rast(e)
         crs(r2)<-crs(r)
         r2<-project(r2,crs(ri))
-        oip<-intersect(ext(r2),ext(ri))
+        oip<-terra::intersect(ext(r2),ext(ri))
         if (is.null(oip) == FALSE) {
           tile<-tile+1
           ri<-crop(ri,ext(r2))
@@ -341,7 +341,7 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
           ro[[tile]]<-resample(ri,rr)
         }
       } else {
-        oip<-intersect(ext(r),ext(ri))
+        oip<-terra::intersect(ext(r),ext(ri))
         if (is.null(oip) == FALSE) {
           tile<-tile+1
           ri<-crop(ri,ext(r))
@@ -854,11 +854,15 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai=NULL, ch=NULL) {
   if(is(veggrid, "vegparams")) {
     veggrid = lapply(veggrid, unwrap)
   } 
-  veggrid = rast(veggrid)
   pt = data.frame(lon=long, lat=lat)
   pt = vect(pt, crs = llcrs)
   pt = project(pt, veggrid[[1]])
-  pt = terra::extract(veggrid, pt)
+  vegp = list()
+  for(i in 1:length(veggrid)) {
+    vegp[[i]] = as.numeric(terra::extract(veggrid[[i]], pt, ID = F))
+  }
+  names(vegp) = names(veggrid)
+
   vegpp <- list(h = pt$hgt,
                 pai = pt$pai,
                 x = pt$x,
@@ -956,7 +960,7 @@ gedi_finder <- function(product, bbox) {
 #' @export
 gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL) {
   gedi = list()
-  # if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
+  i# if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
 
     l2b_i = fread(l2b[i])
