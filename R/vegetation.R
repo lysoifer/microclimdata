@@ -371,9 +371,9 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
     } # end if
     rma = rast(rma)
     if (msk) {
-      rmsk<-resample(r,rma)
-      rma<-mask(rma,rmsk)
       rma<-crop(rma, r)
+      rma<-resample(rma, r)
+      rma<-mask(rma,r)
     }
   }
   return(rma)
