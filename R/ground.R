@@ -295,30 +295,32 @@ albedo_process<-function(r, pathin)  {
   fsplit = lapply(fsplit, "[[", 1)
   dat = gsub("A", "", sapply(fsplit, "[[", 2))
   dat = as.POSIXlt(dat, format = "%Y%j", tz = "UTC")
-  mon = month(dat)
+  mon = paste0(year(dat), "-", month(dat))
   tile = sapply(fsplit, "[[", 3)
   modr = list()
   for(m in unique(mon)) {
     idx = which(mon==m & tile==tile[1])
     fidx = f[idx]
     fidx = rast(fidx)
-    mf <- microclimdata:::apply3D(as.array(fidx))
-    albedo <- microclimdata:::.rast(mf, fidx)
+    mf <- apply3D(as.array(fidx))
+    albedo <- .rast(mf, fidx)
     if(length(unique(tile)) > 1) {
-      for(t in 2:length(tile)) {
-      idx = which(mon==m & tile==tile[t])
-      fidx = f[idx]
-      fidx = rast(fidx)
-      mf <- apply3D(as.array(fidx))
-      alb <- .rast(mf, fidx)
-      albedo = mosaic(albedo, alb)
+      ts = unique(tile)
+      ts = ts[2:length(ts)]
+      for(t in ts) {
+        idx = which(mon==m & tile==t)
+        fidx = f[idx]
+        fidx = rast(fidx)
+        mf <- apply3D(as.array(fidx))
+        alb <- .rast(mf, fidx)
+        albedo = mosaic(albedo, alb)
       }
     }
     modr[[m]] = albedo
   }
   modr = rast(modr)
   albedo <- project(modr, crs(r))
-  albedo <-crop(albedo, ext(r))
+  albedo <- resample(albedo, r)
   utils::setTxtProgressBar(pb, i + 1)
   unlink(tempdir, recursive = T)
   return(albedo)
