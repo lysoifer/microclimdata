@@ -1055,7 +1055,7 @@ gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
     }
     
     # if not coverted to a csv already and clean = T
-    if(!file.exists(gsub(".h5", ".csv", l2b[i]))) {
+    if(!file.exists(gsub(".h5", ".csv", l2b[i])) | overwrite) {
       l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
                      error = function(e){
                        message("GEDI file corrupt: redownloading")

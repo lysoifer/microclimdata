@@ -714,6 +714,8 @@
       lat_lowestmode=level2b_i[["geolocation/lat_lowestmode"]][],
       lon_lowestmode=level2b_i[["geolocation/lon_lowestmode"]][],
       elev_lowestmode=level2b_i[["geolocation/elev_lowestmode"]][],
+      solar_elevation=level2b_i[["geolocation/solar_elevation"]][],
+      leaf_off_flag=level2b_i[["land_cover_data/leaf_off_flag"]][],
       rh100 = level2b_i[["rh100"]][],
       pai = level2b_i[["pai"]][],
       pai_z=t(level2b_i[["pai_z"]][,1:level2b_i[["pai_z"]]$dims[2]]))
@@ -723,7 +725,7 @@
                     "l2b_quality_flag", "degrade_flag", "sensitivity",
                     "delta_time","lat_lowestmode",
                     "lon_lowestmode",
-                    "elev_lowestmode", "rh100", "pai",
+                    "elev_lowestmode", "solar_elevation", "leaf_off_flag", "rh100", "pai",
                     paste0("pai_z",seq(0,30*5,5)[-31],"_",seq(5,30*5,5),"m"))
   close(pb)
   
