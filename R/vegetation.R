@@ -956,6 +956,8 @@ gedi_finder <- function(product, bbox) {
 #' @param powerbeam default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams
 #' @param yr optional; 4 digit year (YYYY) to filter GEDI data
 #' @param mth optional; 2 digit month (MM) to filter GEDI data
+#' @param night filter out daytime shots (default = TRUE)
+#' @param leafon only keep shots during leaf on period (default=FALSE)
 #' @returns a dataframe of vegetation information with the following values
 #' \describe{
 #'   \item{pai}{Total plant area index value}
@@ -963,9 +965,9 @@ gedi_finder <- function(product, bbox) {
 #' }
 #' @import rGEDI
 #' @export
-gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL) {
+gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL, night=TRUE, leafon=FALSE) {
   gedi = list()
-  i# if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
+  # if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
 
     l2b_i = fread(l2b[i])
@@ -996,6 +998,17 @@ gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL) {
         l2b_i = l2b_i %>% 
           filter(beam == "BEAM0101" | beam == "BEAM0110" | beam == "BEAM1000" | beam == "BEAM1011")
       }
+      
+      # remove day time shots
+      if(night) {
+        l2b_i = l2b_i[solar_elev<0,]
+      }
+      
+      # only keep leaf on shots
+      if(leafon) {
+        l2b_i = l2b_i[leaf_off_flag==0]
+      }
+      
       if(!is.null(yr)) {
         l2b_i[, yr := year(shot_time)]
         l2b_i = l2b_i[yr==yr,]
@@ -1015,7 +1028,7 @@ gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL) {
       vertprofile = mapply(.pai_vertprofile, paiz, h, pai, SIMPLIFY = F)
       l2b_i$hz = lapply(vertprofile, function(x){unlist(x[,1])})
       l2b_i$paiz = lapply(vertprofile, function(x){unlist(x[,2])})
-      gedi[[i]] = l2b_i
+      if(nrow(l2b_i)>0) gedi[[i]] = l2b_i
     }
   }
   gedi = bind_rows(gedi)
