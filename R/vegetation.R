@@ -1001,21 +1001,21 @@ gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL, night=TRUE, 
       
       # remove day time shots
       if(night) {
-        l2b_i = l2b_i[solar_elevation<0,]
+        l2b_i = filter(l2b_i, solar_elevation<0)
       }
       
       # only keep leaf on shots
       if(leafon) {
-        l2b_i = l2b_i[leaf_off_flag==0,]
+        l2b_i = filter(l2b_i, leaf_off_flag==0)
       }
       
       if(!is.null(yr)) {
         l2b_i[, yr := year(shot_time)]
-        l2b_i = l2b_i[yr==yr,]
+        l2b_i = filter(l2b_i, yr==yr)
       }
       if(!is.null(mth)) {
         l2b_i[, mth := month(shot_time)]
-        l2b_i = l2b_i[mth==mth,]
+        l2b_i = filter(l2b_i, mth==mth)
       }
       
       l2b_i = as.data.frame(l2b_i)
