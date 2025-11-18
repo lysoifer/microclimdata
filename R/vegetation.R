@@ -663,8 +663,9 @@ x_calc <- function(landcover, lctype = "ESA") {
 #' @param landcover a SpatRaster of landcover class as returned by [lcover_download()].
 #' @param vhgt a SpatRaster of vegetation height as returned by [vegheight_download()].
 #' @param lai a SpatRaster of Leaf Area Index values.
-#' @param refldata a list of ground and leaf reflectance values as returned by [reflectance_calc()].
-#' @param lctype one of `ESA` or `CORINE` indicating the source of `landcover`. Alternatively a data.frame
+#' @param refldata a 2 layer spatRaster or list of 2 layer spatRasters of ground and leaf reflectance values as returned by [reflectance_calc()].
+#' If a list, each element in the list is a month
+#' @param lctype one of `ESA`, `CORINE`, or `Copernicus` indicating the source of `landcover`. Alternatively a data.frame
 #' matching vegetation parameters to landcover types following the format of the inbuilt datasets `esatable`
 #' and `corinetable`.
 #' @returns an object of class `vegparams`, namely a list of the following objects:
@@ -687,8 +688,8 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
   # check geometries
   cp <- compareGeom(landcover, vhgt)
   if (cp) cp <- compareGeom(landcover, lai)
-  if (cp) cp <- compareGeom(landcover, refldata[[1]]$lref)
-  msk <- landcover * vhgt * lai[[1]] * refldata[[1]]$lref
+  if (cp) cp <- compareGeom(landcover, refldata[[1]]$gref)
+  msk <- landcover * vhgt * lai[[1]] * refldata[[1]]$gref
   landcover <- mask(landcover, msk)
   vhgt <- mask(vhgt, msk)
   lai <- mask(lai, msk)
@@ -728,6 +729,7 @@ create_veggrid <- function(landcover, vhgt, lai, refldata, lctype = "ESA") {
   }
   leafr = list()
   leaft = list()
+  if(is(refldata, "SpatRaster")) refldata = list(refldata)
   for(i in 1:length(refldata)) {
     leafr[[i]] <- refldata[[i]]$lref
     leaft[[i]] <- refldata[[i]]$lref / 3    

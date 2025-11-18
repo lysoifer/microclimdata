@@ -438,8 +438,8 @@ albedo_adjust<-function(photoalbedo, modisalbedo) {
 #' @rdname reflectance_calc
 reflectance_calc <- function(alb, lai, x, plotprogress = TRUE, maxiter = 50, tol = 0.001, bwgt = 0.5) {
   # calculate intersecting extents
-  e1 <- intersect(ext(lai), ext(alb))
-  e <- intersect(e1, ext(x))
+  e1 <- terra::intersect(ext(lai), ext(alb))
+  e <- terra::intersect(e1, ext(x))
   lai <- crop(lai, e)
   alb <- crop(alb, e)
   x <- crop(x, e)
