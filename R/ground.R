@@ -643,7 +643,8 @@ soilpfromgrid <- function(soilgrid, topo, lat, long, llcrs) {
   pt = project(pt, soilgrid[[1]])
   psoil = terra::extract(soilgrid, pt)
   ptopo = terra::extract(topo, pt)
-  groundp <- list(gref = psoil$groundr,
+  groundr = as.numeric(psoil[which(grepl("groundr", colnames(psoil)))])
+  groundp <- list(gref = groundr,
                   slope = ptopo$slp,
                   aspect = ptopo$asp,
                   em = 0.97,

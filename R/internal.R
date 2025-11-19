@@ -914,7 +914,7 @@
     relhgt = hz/g$rh100[i]
     # determine proportional pai
     paiprop = paizi/g$pai[i]
-    # spline to get the proportional pai ever 0.1 relative height
+    # spline to get the proportional pai ever 0.025 relative height
     splinef = splinefun(relhgt, paiprop, method = "fmm")
     paizest = splinef(seq(0,1,0.025))
     paizest = paizest/sum(paizest)
@@ -942,6 +942,17 @@
   
   return(list(paii=paii, hz = hz))
   
+}
+
+#' @title Calculate weighted average using inverse distance weighting
+#' @param x numeric vector
+#' @param distances
+.inverse_distweight <- function(x,d) {
+  df = data.frame(x,d)
+  df$invdist = 1/df$d
+  df$iw = df$invdist/sum(df$invdist)
+  x = weighted.mean(df$x, df$iw)
+  return(x)
 }
 
 #' Convert a bounding box to a character vector

@@ -868,15 +868,15 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai=NULL, ch=NULL) {
   }
   names(vegp) = names(veggrid)
 
-  vegpp <- list(h = pt$hgt,
-                pai = pt$pai,
-                x = pt$x,
-                clump = pt$clump,
-                lref = pt$leafr,
-                ltra = pt$leaft,
-                leafd = pt$leafd,
+  vegpp <- list(h =vegp$hgt,
+                pai = vegp$pai,
+                x = vegp$x,
+                clump = vegp$clump,
+                lref = vegp$leafr,
+                ltra = vegp$leaft,
+                leafd = vegp$leafd,
                 em = 0.97,
-                gsmax = pt$gsmax,
+                gsmax = vegp$gsmax,
                 q50 = 100)
   if(!is.null(pai)) vegpp$pai = pai
   if(!is.null(ch)) vegpp$h = ch
