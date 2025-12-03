@@ -447,7 +447,7 @@ reflectance_calc <- function(alb, lai, x, plotprogress = TRUE, maxiter = 50, tol
   all_same <- compareGeom(lai, alb, x)
   if (all_same) {
     tst <- exp(-mean(as.vector(lai), na.rm = T))
-    lref <- (x * 0 + 0.5) * (1 - wgt) + wgt * alb
+    lref <- (x * 0 + 0.5) * (1 - bwgt) + bwgt * alb
     gref <- x * 0 + 0.15
     mxdif <- tol * 10
     paim <- as.matrix(lai, wide = TRUE)
