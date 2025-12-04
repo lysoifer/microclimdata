@@ -1093,9 +1093,24 @@ gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
   return(l2b)
 }
 
-
-
+#' @title grid gedi points
+#' @description Grids gedi points to extent and resolution of provided template raster. 
+#' The output raster may have NA values, particularly if a finer resolution is requested.
+#' If NA values are present, use `lai_fill()` to fill in NA values based on landcover data 
+#' 
+#' @param g dataframe or data.table of gedi points as returned from `gedi_process`
+#' @param template spatRaster to use as a template for gridding
+grid_gedi = function(g, template) {
+  g = vect(g, geom = c("lon_lowestmode", "lat_lowestmode"), crs = "epsg:4326")
+  g = project(g, template)
+  g = crop(g, template)
   
+  # rasterize
+  h1 = seq(0, 100,5)
+  h2 = seq(5,105,5)
+  fields = paste0("pai_z", h1, "_", h2, "m")
+  fields = c("pai", fields)
+  r = rasterize(g, template, field = fields, fun = "mean")
   
-  
-  
+  return(r)
+}
