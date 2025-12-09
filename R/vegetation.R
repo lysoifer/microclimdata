@@ -1,36 +1,34 @@
 #' @title Download Landcover data
 #'
-#' @description Downloads either 10m grid resolution ESA or 100m grid resolution
-#' CORINE landcover data from Google Earth Engine. The latter contains more habitat
+#' @description Downloads either 10m grid resolution ESA, 100m grid resolution
+#' CORINE landcover data from Google Earth Engine, or 500m grid resolution from MODIS (MCD12Q1.061). The latter two contain more habitat
 #' classes.
 #' @param r a SpatRaster with a coordinate reference system defined. Used
 #' to the location for which to download data.
-#' @param type one of `ESA` or `CORINE`
+#' @param type one of `ESA` or `CORINE` or `MODIS`
 #' @param year year for which land cover data are required. Ignored if `type` set
-#' to `ESA` as 2023 data will be downloaded. Options are 1986 to 2018 for `CORINE`.
+#' @param yearend end year for which land cover data are required if type == `MODIS`
+#' to `ESA` as 2023 data will be downloaded. Options are 1986 to 2018 for `CORINE` and 2001 to present year for `MODIS`
+#' @param user username for earthdata account if type = `MODIS`
+#' @param pwd password for earthdata account if type = `MODIS`
 #' @param GoogleDrivefolder name of folder on your Google drive to which data will
 #' be downloaded.
 #' @param pathtopython directory in which Python is saved (see
 #' vignette instructions for installing and setting up Python)
 #' @param projectname the name of your Google Earth Engine project (see
 #' vignette instructions.
+#' @param savepath directory to save downloaded files (only needed if type = `MODIS`)
 #' @param silent optional logical indicating whether or not to inform user of download
 #' progress.
-#' @details See vignette for example of how to use ths function.
+#' @details See vignette for example of how to use this function.
 #' @import terra
 #' @import reticulate
 #' @import rgee
 #' @export
 #' @rdname lcover_download
-lcover_download<-function(r, type = "ESA", year = 2018, GoogleDrivefolder, pathtopython, projectname = NA, silent = FALSE) {
-  typecheck <- type %in% c("ESA", "CORINE")
-  if (typecheck == FALSE) stop("type must be one of ESA or CORINE")
-  if (type == "CORINE") {
-    yearcheck <- year %in% c(1986:2018)
-    if (yearcheck == FALSE) stop("CORINE land cover data only available on Google Earth Engine for 1986 to 2018")
-  }
-  use_python(paste0(pathtopython,"python.exe"), required = TRUE)
-  if (is.na(projectname) == FALSE) ee$Initialize(project=projectname)
+lcover_download<-function(r, type = "ESA", year = 2018, yearend = NA, user, pwd, GoogleDrivefolder, pathtopython, projectname = NA, savepath, silent = FALSE) {
+  typecheck <- type %in% c("ESA", "CORINE", "MODIS")
+  if (typecheck == FALSE) stop("type must be one of ESA, CORINE, or MODIS")
   # Get bounding box
   e<-ext(r)
   r2<-rast(e)
@@ -44,19 +42,13 @@ lcover_download<-function(r, type = "ESA", year = 2018, GoogleDrivefolder, patht
   aoi <- ee$Geometry$Rectangle(c(e$xmin, e$ymin, e$xmax, e$ymax))
   aoi_bounds <- aoi$bounds()$getInfo()
   aoi_coordinates <- aoi_bounds$coordinates[[1]]
-  if (type == "ESA") {
-    collection <- ee$ImageCollection('ESA/WorldCover/v100')
-    lcover <- collection$first()
-    task <- ee$batch$Export$image$toDrive(
-      image = lcover,  # The image to export
-      description = 'ESA_WorldCover_Export',  # Description for the export task
-      folder = GoogleDrivefolder,  # Folder in Google Drive where the file will be saved
-      fileNamePrefix = 'ESA_WorldCover_2023',  # Prefix for the filename
-      region =   aoi_coordinates,  # Define the export region
-      scale = 10,  # Scale in meters (resolution)
-      crs = epsg_code  # Coordinate reference system
-    )
-  } else {
+  if (type == "CORINE") {
+    use_python(paste0(pathtopython,"python.exe"), required = TRUE)
+    if (is.na(projectname) == FALSE) ee$Initialize(project=projectname)
+    
+    yearcheck <- year %in% c(1986:2018)
+    if (yearcheck == FALSE) stop("CORINE land cover data only available on Google Earth Engine for 1986 to 2018")
+    
     # Define the CORINE Landcover dataset
     dataset <- ee$Image(paste0('COPERNICUS/CORINE/V20/100m/',year))
     # Select the 'landcover' band
@@ -71,6 +63,49 @@ lcover_download<-function(r, type = "ESA", year = 2018, GoogleDrivefolder, patht
       crs = epsg_code   # Coordinate reference system
     )
   }
+  if (type == "MODIS") {
+    appeears::rs_set_key(user, pwd)
+    roi = rast(e)
+    df <- data.frame(
+      task = "MCD12Q1.061",
+      subtask = paste0(e$xmin, "_", e$ymin),
+      latitude = (e$ymin + e$ymax)/2,
+      longitude = (e$xmin + e$xmax)/2,
+      start = paste0(year, "-01-01"),
+      end = paste0(yearend, "-12-31"),
+      product = "MCD12Q1.061",
+      layer = c("LC_Type1","QC")
+    )
+    task = rs_build_task(df = df, roi = roi, format = "geotiff")
+    rs_request(
+      request = task,
+      user = user,
+      transfer = T,
+      path = savepath,
+      verbose = T
+    )
+    r = rast(paste0(savepath, "MCD12Q1.061_LC_Type1_doy2010001000000_aid0001.tif"))
+    msk = rast(paste0(savepath, "MCD12Q1.061_QC_doy2010001000000_aid0001.tif"))
+    msk[msk == 1 | msk == 2 | msk == 3 | msk == 4 | msk == 10] <- NA
+    r = mask(test, msk)
+    return(r)
+  }
+  if (type == "ESA") {
+    use_python(paste0(pathtopython,"python.exe"), required = TRUE)
+    if (is.na(projectname) == FALSE) ee$Initialize(project=projectname)
+    
+    collection <- ee$ImageCollection('ESA/WorldCover/v100')
+    lcover <- collection$first()
+    task <- ee$batch$Export$image$toDrive(
+      image = lcover,  # The image to export
+      description = 'ESA_WorldCover_Export',  # Description for the export task
+      folder = GoogleDrivefolder,  # Folder in Google Drive where the file will be saved
+      fileNamePrefix = 'ESA_WorldCover_2023',  # Prefix for the filename
+      region =   aoi_coordinates,  # Define the export region
+      scale = 10,  # Scale in meters (resolution)
+      crs = epsg_code  # Coordinate reference system
+    )
+  } 
   task$start()
   if (silent == FALSE) .monitor_task(task$id)
 }
