@@ -1149,3 +1149,30 @@ grid_gedi = function(g, template) {
   
   return(r)
 }
+
+#' @title spline gedi paiz raster to get paia at reqhgt
+#' @param gedi multilayer spatraster of gedi paia at 5 m height intervals
+#' @param required heights of paia
+#' @description
+#' Returns a spatraster where each layer represents a height in the canopy with pai above the requested height
+#' 
+gedi_spline = function(gedi, h) {
+  h_int = seq(from=0, by=5, length.out=nlyr(gedi))
+  paiz = as.array(gedi)
+  
+  paispline = apply(paiz, MARGIN = c(1,2), FUN = function(pai_profile) {
+    monospline <- splinefun(h_int, pai_profile, method = "monoH.FC")
+    return(monospline(h))
+  })
+  
+  # Transpose to get correct dimensions [lat, lon, height]
+  if(length(h) > 1) {
+    paispline <- aperm(paispline, c(2,3,1))
+  }
+  
+  paispline = rast(paispline, crs = crs(gedi), extent = ext(gedi))
+  names(paispline) = h
+  
+  return(paispline)
+}
+
