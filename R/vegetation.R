@@ -191,7 +191,7 @@ vegheight_download<-function(r, GoogleDrivefolder, pathtopython, projectname = N
 #' @import reticulate
 #' @export
 #' @rdname lai_download
-lai_download<-function(r, tme, reso = 10, pathout, credentials, pathtopython = "C:/Python/") {
+lai_download<-function(r, tme, reso = 10, pathout, credentials, pathtopython = "C:/Python/", download=TRUE) {
   isres <- reso %in% c(10, 500)
   if (isres == FALSE) stop("reso must be one of 10 or 500")
   year<-tme$year[1]+1900
@@ -257,12 +257,13 @@ lai_download<-function(r, tme, reso = 10, pathout, credentials, pathtopython = "
     username <- credentials$username[1]
     password <- credentials$password[1]
     if (length(mf) > 0) {
-      luna::getNASA("MOD15A2H", st, ed, aoi = e2, version = "061", download=TRUE,
+     luna::getNASA("MOD15A2H", st, ed, aoi = e2, version = "061", download=download,
                     path=pathout,username=username,password=password,server="LPDAAC_ECS")
     } else {
       stop("No data for specified location or time period")
     }
   }
+  return(mf)
 }
 #' @title Moasic Leaf Area Index (LAI) data returned
 #'
