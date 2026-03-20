@@ -1198,6 +1198,7 @@ gedi_spline = function (gedi, h) {
 #' pad <- padcalc(las, hres = 5, dz = 1, k = 0.5)
 #' 
 #' @import terra
+#' @import data.table
 #' @importFrom lidR voxel_metrics
 #' @export
 padcalc <- function(las, hres, dz, k) {
