@@ -1199,7 +1199,7 @@ gedi_spline = function (gedi, h) {
 #' 
 #' @import terra
 #' @import data.table
-#' @importFrom lidR
+#' @import lidR
 #' @export
 padcalc <- function(las, hres, dz, k) {
   
