@@ -834,33 +834,33 @@ END_RCPP
 // leafrcpp
 double leafrcpp(double lref, double pai, double gref, double x, double albin);
 RcppExport SEXP _microclimdata_leafrcpp(SEXP lrefSEXP, SEXP paiSEXP, SEXP grefSEXP, SEXP xSEXP, SEXP albinSEXP) {
-  BEGIN_RCPP
-  Rcpp::RObject rcpp_result_gen;
-  Rcpp::RNGScope rcpp_rngScope_gen;
-  Rcpp::traits::input_parameter< double >::type lref(lrefSEXP);
-  Rcpp::traits::input_parameter< double >::type pai(paiSEXP);
-  Rcpp::traits::input_parameter< double >::type gref(grefSEXP);
-  Rcpp::traits::input_parameter< double >::type x(xSEXP);
-  Rcpp::traits::input_parameter< double >::type albin(albinSEXP);
-  rcpp_result_gen = Rcpp::wrap(leafrcpp(lref, pai, gref, x, albin));
-  return rcpp_result_gen;
-  END_RCPP
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type lref(lrefSEXP);
+    Rcpp::traits::input_parameter< double >::type pai(paiSEXP);
+    Rcpp::traits::input_parameter< double >::type gref(grefSEXP);
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type albin(albinSEXP);
+    rcpp_result_gen = Rcpp::wrap(leafrcpp(lref, pai, gref, x, albin));
+    return rcpp_result_gen;
+END_RCPP
 }
 // solve_gref
 double solve_gref(double lref, double pai, double x, double albin, double tol, int max_iter);
 RcppExport SEXP _microclimdata_solve_gref(SEXP lrefSEXP, SEXP paiSEXP, SEXP xSEXP, SEXP albinSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
-  BEGIN_RCPP
-  Rcpp::RObject rcpp_result_gen;
-  Rcpp::RNGScope rcpp_rngScope_gen;
-  Rcpp::traits::input_parameter< double >::type lref(lrefSEXP);
-  Rcpp::traits::input_parameter< double >::type pai(paiSEXP);
-  Rcpp::traits::input_parameter< double >::type x(xSEXP);
-  Rcpp::traits::input_parameter< double >::type albin(albinSEXP);
-  Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-  Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
-  rcpp_result_gen = Rcpp::wrap(solve_gref(lref, pai, x, albin, tol, max_iter));
-  return rcpp_result_gen;
-  END_RCPP
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type lref(lrefSEXP);
+    Rcpp::traits::input_parameter< double >::type pai(paiSEXP);
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type albin(albinSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(solve_gref(lref, pai, x, albin, tol, max_iter));
+    return rcpp_result_gen;
+END_RCPP
 }
 // find_gref
 NumericMatrix find_gref(NumericMatrix lref, NumericMatrix pai, NumericMatrix x, NumericMatrix albin);

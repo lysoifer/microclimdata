@@ -447,7 +447,7 @@ reflectance_calc <- function(alb, lai, x, plotprogress = TRUE, maxiter = 50, tol
   all_same <- compareGeom(lai, alb, x)
   if (all_same) {
     tst <- exp(-mean(as.vector(lai), na.rm = T))
-    lref <- (x * 0 + 0.5) * (1 - bwgt) + bwgt * alb
+    lref <- (x * 0 + 0.5) * (1 - wgt) + wgt * alb
     gref <- x * 0 + 0.15
     mxdif <- tol * 10
     paim <- as.matrix(lai, wide = TRUE)
@@ -527,9 +527,9 @@ create_soilgrid <- function(soildata, refldata, landcover, water = 80) {
   class(soilp) <- "soilcharac"
   return(soilp)
 }
-#' @title Create ground inputs for point model
+#' @title Create Soil inputs for grid model
 #'
-#' @description Creates an object of class groundparams used as an input to `micropoint`
+#' @description Creates an object of class soilparams used as an input to `micropoint`
 #'
 #' @param soildata a multilayer SpatRaster of soil data as returned by [soildata_download()].
 #' @param refldata a list of ground and leaf reflectances as returned by [reflectance_calc()].
