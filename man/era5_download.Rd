@@ -4,7 +4,7 @@
 \alias{era5_download}
 \title{Downloads ERA5 climate data}
 \usage{
-era5_download(r, tme, credentials, file_prefix, pathout)
+era5_download(r, tme, credentials, file_prefix, pathout, clean = T)
 }
 \arguments{
 \item{r}{a SpatRaster giving a template area for which to download data}
@@ -17,6 +17,8 @@ era5_download(r, tme, credentials, file_prefix, pathout)
 The year, month, and file extension is automatically added.}
 
 \item{pathout}{directory to which data are saved.}
+
+\item{clean}{if TRUE, removes zip files and only saves nc files}
 }
 \value{
 a list of the request details sent to climateData Store for all microclimate

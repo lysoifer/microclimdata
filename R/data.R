@@ -37,7 +37,7 @@
 #' A data frame of vegetation parameters for Copernicus global dynamic land cover types
 #' @format a data frame with the following columns:
 #' \describe{
-#'  \item{Code}{Numeric code used in ESA landcover data}
+#'  \item{Code}{Numeric code used in Copernicus global dynamic landcover data}
 #'  \item{Descriptor}{Description of vegetation type}
 #'  \item{x}{Ratio of vertical to horizontal projections of leaf foliage}
 #'  \item{gsmax}{Maximum stomatal conductances (mol / m^2 / s)}

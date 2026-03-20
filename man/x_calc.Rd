@@ -9,7 +9,7 @@ x_calc(landcover, lctype = "ESA")
 \arguments{
 \item{landcover}{a SpatRaster of landcover class as returned by [lcover_download()].}
 
-\item{lctype}{one of `ESA` or `CORINE` indicating the source of `landcover`.}
+\item{lctype}{one of `ESA`, `CORINE`, or `Copernicus` indicating the source of `landcover`.}
 }
 \value{
 a SpatRaster leaf inclination coefficient values

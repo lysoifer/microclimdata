@@ -683,7 +683,7 @@ x_calc <- function(landcover, lctype = "ESA") {
   } else if (lctype == "CORINE") {
     ltable <- corinetable
   } else if (lctype == "Copernicus") {
-    ltable <- gdlctable
+    ltable <- copernicus_gdlc_table
   }
   for (i in 1:length(u)) {
     s <- which(ltable$Code == u[i])
@@ -1244,9 +1244,3 @@ padcalc <- function(las, hres, dz, k) {
   
   return(padr)
 }
-#' 
-#' 
-#' 
-#' 
-#' 
-#' 

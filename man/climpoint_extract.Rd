@@ -4,7 +4,17 @@
 \alias{climpoint_extract}
 \title{extracts climate data for a point location}
 \usage{
-climpoint_extract(climdata, x, y, aslatlong = FALSE)
+climpoint_extract(
+  climdata,
+  x,
+  y,
+  aslatlong = FALSE,
+  altcorrect = 2,
+  dtmc,
+  elev,
+  proj = FALSE,
+  distweight = T
+)
 }
 \arguments{
 \item{climdata}{a list of SpatRasters of climate data as returned by haduk_coastfill or
@@ -17,6 +27,18 @@ any other of the climate data process functions.}
 \item{aslatlong}{optional logical indicating whether `x` and `y` are longitude
 and latitude (TRUE) or the easting and northing in the same coordinate reference
 system as `climdata`}
+
+\item{altcorrect}{0=no altitudinal correction; 1=temperature dependent lapse rate correction;
+humidity dependent lapse rate correction}
+
+\item{dtmc}{raster of era5 elevation data (optional; only needed if altcorrect>0)}
+
+\item{elev}{raster of elevation (optional; only needed if altcorrect>0)}
+
+\item{proj}{if TRUE and climdata is not in a projected crs, reproject}
+
+\item{distweight}{if TRUE applies inverse distance weighting using 4 nearest cells to point
+when extracting climate data}
 }
 \description{
 This function extracts climate data from a climate arrays for any

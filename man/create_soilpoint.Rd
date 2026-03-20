@@ -2,6 +2,7 @@
 % Please edit documentation in R/ground.R
 \name{create_soilpoint}
 \alias{create_soilpoint}
+\alias{soilpfromgrid}
 \title{Create Soil inputs for grid model}
 \usage{
 create_soilpoint(
@@ -13,6 +14,8 @@ create_soilpoint(
   long = NA,
   water = 80
 )
+
+soilpfromgrid(soilgrid, topo, lat, long, llcrs)
 }
 \arguments{
 \item{soildata}{a multilayer SpatRaster of soil data as returned by [soildata_download()].}
@@ -23,13 +26,39 @@ create_soilpoint(
 
 \item{landcover}{a SpatRaster of landcover class as returned by [lcover_download()].}
 
-\item{lat}{optionally, latitude (decimal degrees) - see details.}
+\item{lat}{latitude}
 
-\item{long}{optionally, longitude (decimal degrees) - see details.}
+\item{long}{longitude}
 
 \item{water}{integer value in `landcover` corresponding to water (e.g. 80 for ESA dataset)}
+
+\item{soilgrid}{the output of [create_soilgrid()]. Can be a list of unpacked spatRasters to reduce
+the extra step of unwrapping when running the model for many points}
+
+\item{topo}{output of topo_process (spatraster with layers for elevation, slope, and aspect)}
+
+\item{llcrs}{the crs of long, lat coordinates}
 }
 \value{
+an object of class `groundparams`, namely a list of the following objects:
+\describe{
+  \item{gref}{ground reflectance}
+  \item{slope}{slope of ground surface (deg)}
+  \item{aspect}{aspect of ground surface (deg from north)}
+  \item{em}{emissivity of ground surface}
+  \item{rho}{Soil bulk density (Mg / m^3)}
+  \item{Vm}{Volumetric mineral fraction of soil}
+  \item{Vq}{Volumetric quartz fraction of soil}
+  \item{Mc}{Mass fraction of clay}
+  \item{b}{Shape parameter for Campbell soil moisture model}
+  \item{Psie}{Matric potential (J / m^3)}
+  \item{Smax}{Volumetric water content at saturation}
+  \item{Smin}{Residual water content}
+  \item{alpha}{Shape parameter of the van Genuchten model (cm^-1)}
+  \item{n}{Pore size distribution parameter}
+  \item{Ksat}{Saturated hydraulic conductivity (cm / day)}
+}
+
 an object of class `groundparams`, namely a list of the following objects:
 \describe{
   \item{gref}{ground reflectance}
@@ -51,8 +80,13 @@ an object of class `groundparams`, namely a list of the following objects:
 }
 \description{
 Creates an object of class soilparams used as an input to `micropoint`
+
+Creates an object of class groundparams used as an input to `micropoint`
 }
 \details{
+If `lat` and `long` are unspecified, point data are selelected for
+the location and the centre of supplied `landcover`.
+
 If `lat` and `long` are unspecified, point data are selelected for
 the location and the centre of supplied `landcover`.
 }

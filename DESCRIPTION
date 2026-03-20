@@ -39,4 +39,4 @@ VignetteBuilder: knitr
 URL: https://github.com/ilyamaclean/microclimf
 BugReports: http://github.com/microclimf/issues
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5)

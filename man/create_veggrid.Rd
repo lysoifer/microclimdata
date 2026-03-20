@@ -13,9 +13,10 @@ create_veggrid(landcover, vhgt, lai, refldata, lctype = "ESA")
 
 \item{lai}{a SpatRaster of Leaf Area Index values.}
 
-\item{refldata}{a list of ground and leaf reflectance values as returned by [reflectance_calc()].}
+\item{refldata}{a 2 layer spatRaster or list of 2 layer spatRasters of ground and leaf reflectance values as returned by [reflectance_calc()].
+If a list, each element in the list is a month}
 
-\item{lctype}{one of `ESA` or `CORINE` indicating the source of `landcover`. Alternatively a data.frame
+\item{lctype}{one of `ESA`, `CORINE`, or `Copernicus` indicating the source of `landcover`. Alternatively a data.frame
 matching vegetation parameters to landcover types following the format of the inbuilt datasets `esatable`
 and `corinetable`.}
 }

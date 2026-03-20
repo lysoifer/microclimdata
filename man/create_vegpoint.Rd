@@ -2,6 +2,7 @@
 % Please edit documentation in R/vegetation.R
 \name{create_vegpoint}
 \alias{create_vegpoint}
+\alias{vegpfromgrid}
 \title{Create vegetation inputs for point model}
 \usage{
 create_vegpoint(
@@ -13,6 +14,8 @@ create_vegpoint(
   lat = NA,
   long = NA
 )
+
+vegpfromgrid(veggrid, lat, long, llcrs, pai = NULL, ch = NULL)
 }
 \arguments{
 \item{landcover}{a SpatRaster of landcover class as returned by [lcover_download()].}
@@ -27,11 +30,32 @@ create_vegpoint(
 matching vegetation parameters to landcover types following the format of the inbuilt datasets `esatable`
 and `corinetable`.}
 
-\item{lat}{optionally, latitude (decimal degrees) - see details.}
+\item{lat}{latitude}
 
-\item{long}{optionally, longitude (decimal degrees) - see details.}
+\item{long}{longitude}
+
+\item{veggrid}{output of [create_veggrid()]. Can be unwrapped to save a step when processing many points}
+
+\item{llcrs}{the crs of lat,long coordinates}
+
+\item{pai}{optionally, provide pai at a finer resolution (e.g., pai from gedi)}
+
+\item{ch}{optionally, provide canopy height at a finer resolution than veggrid 
+(e.g., from gedi or lang et al. 2023)}
 }
 \value{
+an object of class `vegparams`, namely a list of the following objects:
+\describe{
+  \item{pai}{Plant area index value}
+  \item{hgt}{Vegetation height (m)}
+  \item{x}{Ratio of vertical to horizontal projection of leaf foliage}
+  \item{gsmax}{Maximum stomatal conductances (mol / m^2 / s)}
+  \item{leafr}{Leaf reflectance}
+  \item{clump}{Value between 0 and 1 indicating the fraction of radiation passing through larger gaps in the canopy}
+  \item{leafd}{Leaf diameter (m)}
+  \item{leaft}{Leaf transmittance}
+}
+
 an object of class `vegparams`, namely a list of the following objects:
 \describe{
   \item{pai}{Plant area index value}
@@ -46,6 +70,10 @@ an object of class `vegparams`, namely a list of the following objects:
 }
 \description{
 Creates an object of class vegparams used as an input to `micropoint`.
+
+Creates an object of class vegparams used as an input to `micropoint`.
+Useful when running point model for a list of points where you have the vegetation grid that
+covers all points of interest
 }
 \details{
 If `lat` and `long` are unspecified, point data are selelected for

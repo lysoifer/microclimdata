@@ -10,7 +10,8 @@ lai_download(
   reso = 10,
   pathout,
   credentials,
-  pathtopython = "C:/Python/"
+  pathtopython = "C:/Python/",
+  download = TRUE
 )
 }
 \arguments{

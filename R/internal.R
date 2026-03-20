@@ -947,7 +947,7 @@
 
 #' @title Calculate weighted average using inverse distance weighting
 #' @param x numeric vector
-#' @param distances
+#' @param d distances
 .inverse_distweight <- function(x,d) {
   df = data.frame(x,d)
   df$invdist = 1/df$d

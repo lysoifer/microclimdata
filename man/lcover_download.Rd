@@ -8,9 +8,13 @@ lcover_download(
   r,
   type = "ESA",
   year = 2018,
+  yearend = NA,
+  user,
+  pwd,
   GoogleDrivefolder,
   pathtopython,
   projectname = NA,
+  savepath,
   silent = FALSE
 )
 }
@@ -18,10 +22,16 @@ lcover_download(
 \item{r}{a SpatRaster with a coordinate reference system defined. Used
 to the location for which to download data.}
 
-\item{type}{one of `ESA` or `CORINE`}
+\item{type}{one of `ESA` or `CORINE` or `MODIS`}
 
-\item{year}{year for which land cover data are required. Ignored if `type` set
-to `ESA` as 2023 data will be downloaded. Options are 1986 to 2018 for `CORINE`.}
+\item{year}{year for which land cover data are required. Ignored if `type` set}
+
+\item{yearend}{end year for which land cover data are required if type == `MODIS`
+to `ESA` as 2023 data will be downloaded. Options are 1986 to 2018 for `CORINE` and 2001 to present year for `MODIS`}
+
+\item{user}{username for earthdata account if type = `MODIS`}
+
+\item{pwd}{password for earthdata account if type = `MODIS`}
 
 \item{GoogleDrivefolder}{name of folder on your Google drive to which data will
 be downloaded.}
@@ -32,14 +42,16 @@ vignette instructions for installing and setting up Python)}
 \item{projectname}{the name of your Google Earth Engine project (see
 vignette instructions.}
 
+\item{savepath}{directory to save downloaded files (only needed if type = `MODIS`)}
+
 \item{silent}{optional logical indicating whether or not to inform user of download
 progress.}
 }
 \description{
-Downloads either 10m grid resolution ESA or 100m grid resolution
-CORINE landcover data from Google Earth Engine. The latter contains more habitat
+Downloads either 10m grid resolution ESA, 100m grid resolution
+CORINE landcover data from Google Earth Engine, or 500m grid resolution from MODIS (MCD12Q1.061). The latter two contain more habitat
 classes.
 }
 \details{
-See vignette for example of how to use ths function.
+See vignette for example of how to use this function.
 }
