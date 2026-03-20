@@ -1199,7 +1199,7 @@ gedi_spline = function (gedi, h) {
 #' 
 #' @import terra
 #' @import data.table
-#' @importFrom lidR voxel_metrics
+#' @importFrom lidR
 #' @export
 padcalc <- function(las, hres, dz, k) {
   
@@ -1208,6 +1208,7 @@ padcalc <- function(las, hres, dz, k) {
   }
   
   # any negative Z values = 0
+  las@data <- data.table::as.data.table(las@data)
   las@data[, Z := ifelse(Z < 0, 0, Z)]
   las@data[, Z := round_down(Z, dz)] # ensures voxels are split at meter lines
   
