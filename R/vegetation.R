@@ -1174,3 +1174,79 @@ gedi_spline = function (gedi, h) {
   names(paispline) = h
   return(paispline)
 }
+
+#' @title Calculate plant area density profiles from airborne lidar data
+#' @description
+#' This function takes a lidR point cloud and calculates PAD profiles at the 
+#' specified horizontal and vertical resolutions. Results differ slightly from
+#' PAD profiles calculated in leafR and canopylazR because ground points are 
+#' not considered to contribute to PAD in the bottom-most layer. Doing so
+#' the ground does not contribute to vegetation in microclimate models. This
+#' function also uses terra rather than raster, which the older leafR and 
+#' canopylazR depend on.
+#' 
+#' @param las lidR object. Should be normalized and classified with ground = 2
+#' @param hres horizontal resolution
+#' @param dz vertical resolution
+#' @param k extinction coefficient
+#' 
+#' @return spatRaster of PAD profiles. Names of the layers indicate the vertical 
+#' bin from ground to canopy
+#' 
+#' @examples
+#' las = readLas(lasnorm.laz)
+#' pad <- padcalc(las, hres = 5, dz = 1, k = 0.5)
+#' 
+#' @import terra
+#' @importFrom lidR voxel_metrics
+#' @export
+padcalc <- function(las, hres, dz, k) {
+  
+  round_down <- function(n, x) {
+    floor(n / x) * x
+  }
+  
+  # any negative Z values = 0
+  las@data[, Z := ifelse(Z < 0, 0, Z)]
+  las@data[, Z := round_down(Z, dz)] # ensures voxels are split at meter lines
+  
+  # make ground returns -1
+  # this is so the ground is not included in PAD of the nearest ground voxel
+  las@data[, Z := ifelse(Classification==2, -1, Z)]
+  
+  # sum number of points per voxel
+  vox = voxel_metrics(las, ~list(N = length(Z)), res = c(hres,dz), all_voxels = T)
+  
+  # assign unique column id
+  vox[, col_id := as.numeric(factor(paste(X, Y, sep = "_")))]
+  
+  # arrange by x and y columns
+  vox = vox %>% arrange(X, Y)
+  
+  # if the number of points in a cell is NA, replace with 0
+  vox[, N := ifelse(is.na(N), 0, N), by = col_id]
+  
+  # calculate points entering each voxel
+  vox[order(Z), pts_in := cumsum(N), by = col_id]
+  
+  # calculate points leaving each voxel
+  vox[, pts_out := data.table::shift(pts_in, fill = 0), by = col_id]
+  
+  # calculate pad
+  vox[, pad := (log(pts_in/pts_out))/(k*dz)]
+  vox[, pad := ifelse(is.infinite(pad), NA, pad)]
+  
+  # convert pad to a raster
+  vox = as.data.table(vox)
+  padr = rast(vox[,.(X, Y, Z, pad)], type = "xylz")
+  padr = padr[[2:nlyr(padr)]] # remove empty ground layer
+  names(padr) <- paste0(names(padr), "m_", as.numeric(names(padr))+dz, "m")
+  
+  return(padr)
+}
+#' 
+#' 
+#' 
+#' 
+#' 
+#' 

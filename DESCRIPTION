@@ -12,21 +12,24 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
 LinkingTo: Rcpp 
-Imports: curl, 
-  elevatr,
-  ecmwfr,
-  httr,
-  lubridate,
-  ncdf4,
-  Rcpp,
-  rerddap,
-  reticulate,
-  rgee,
-  RNCEP,
-  sf,
-  terra,
-  utils,
-  zoo
+Imports: 
+    curl,
+    elevatr,
+    ecmwfr,
+    httr,
+    lubridate,
+    ncdf4,
+    Rcpp,
+    rerddap,
+    reticulate,
+    rgee,
+    RNCEP,
+    sf,
+    terra,
+    utils,
+    zoo,
+    lidR,
+    data.table
 Remotes: github::rspatial/luna, github::ilyamaclean/mcera5
 Suggests: 
     knitr,
