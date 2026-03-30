@@ -788,3 +788,17 @@ The resulting dataset is an object of class `groundparams` ready for using with 
 (15) Ksat - Saturated hydraulic conductivity ($\small cm/day$)
 
 ### Climate inputs
+
+# Updates from original microclimdata
+
+## Climate
+
+era5_download: Downloads climate data from era5 land except for surface direct solar radiation (fdir), mean surface downward long-wave radiation flux (avg_sdlwrf), and land-sea mask (lsm). These variables are not currently available from era5 land and are therefore downloaded from era5 reanalysis at a coarser resolution. Now returns a list of length 2, with the list of era5 reanalysis requests and the list of era5 land requests.
+
+era5_process: Adjusted to accommodate the combination of era5 reanalysis and era5 land. nc should not be a vector with two file paths: the first is the path to the reanalysis nc file and the second is the path to the era5 land file. Within .extract_clima, variables from era5 reanalysis are resampled to resolution and extent of era5 land before processing.
+
+To check: in .extract_clima the coefficient for correction of diurnal temperature ranges near water is 1.285. Check if this is still accurate for ERA5 land.
+
+
+
+

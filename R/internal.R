@@ -361,19 +361,35 @@
   sst<-.rast(expandssttohour(.is(sst)),r)
   return(sst)
 }
-# ' equivelent of mcera5::extract_clima but corrected
+#' equivelent of mcera5::extract_clima but corrected
+#' @param nc vector of two filepaths. The first is the path to era5 reanalysis
+#' download and the second is the path to era5 land download
+#' @param r template spatRaster
+#' @param resampleout should the output be resampled to the spatial resolution
+#' of r
 .extract_clima <- function(nc, r, resampleout = FALSE) {
   # get time
-  nc_file <- ncdf4::nc_open(nc)
+  nc_file <- ncdf4::nc_open(nc[1])
   tme <- as.POSIXlt(ncdf4::ncvar_get(nc_file, "valid_time"),
                     origin="1970-01-01 00:00", tz = "UTC")
   ncdf4::nc_close(nc_file)
   # extract variables
   varn <- c("t2m", "d2m", "sp", "u10" , "v10",  "tp", "avg_sdlwrf", "fdir", "ssrd", "lsm")
+  var_r <- c("fdir", "avg_sdlwrf", "lsm") # variables from reanalysis instead of land
+  landr <- rast(nc[[2]], lyrs = 1)
   rlst <- list()
-  for (i in 1:9) rlst[[i]]<-rast(nc, subds=varn[i])
-  rlst[[10]]<-rast(nc, subds=varn[10])[[1]]
-  lsm <-  rlst[[10]]
+  for (i in 1:9) {
+    if(varn[i] %in% var_r) {
+      # resample reanalysis to era5 land resolution
+      era_r <- rast(nc[[1]], subds=varn[i])
+      rlst[[i]] <- resample(era_r, landr)
+    } else {
+      rlst[[i]]<-rast(nc[[2]], subds=varn[i])
+    }
+  } 
+  lsm <- rast(nc[[1]], subds=varn[10])[[1]]
+  lsm <- resample(lsm, landr)
+  rlst[[10]]<- lsm
   tc <- rlst[[1]]-273.15
   # coastal correction
   if (any(terra::values(lsm) < 1)) {
@@ -405,7 +421,7 @@
       if (crs(r) != crs(rll)) {
         rlst[[i]]<-project(rlst[[i]],r, method="cubic")
       } else {
-         rlst[[i]]<-resample(rlst[[i]],r, method = "cubic")
+        rlst[[i]]<-resample(rlst[[i]],r, method = "cubic")
       }
       rlst[[i]]<-mask(rlst[[i]],r)
     }

@@ -71,35 +71,78 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
   xmx<-ceiling(ell$xmax*4)/4
   ymn<-floor(ell$ymin*4)/4
   ymx<-ceiling(ell$ymax*4)/4
+  
+  # download what we can from era5 land and the other variables from era5 reanalysis
+  req_land <- mcera5::build_era5_land_request(xmin = xmn, xmax = xmx,
+                                              ymin = ymn, ymax = ymx,
+                                              start_time = tme[1],
+                                              end_time = tme[length(tme)],
+                                              outfile_name = file_prefix)
+  keepvar = c("2m_temperature","2m_dewpoint_temperature", "surface_pressure",
+              "10m_u_component_of_wind", "10m_v_component_of_wind", "total_precipitation", 
+              "surface_solar_radiation_downwards")
+  for(i in 1:length(req_land)) {req_land[[i]]$variable = keepvar}
+  
   req <- mcera5::build_era5_request(xmin = xmn, xmax = xmx,
                                     ymin = ymn, ymax = ymx,
                                     start_time = tme[1],
                                     end_time = tme[length(tme)],
                                     outfile_name = file_prefix)
+  keepvar <- c("total_sky_direct_solar_radiation_at_surface", "mean_surface_downward_long_wave_radiation_flux")
+  for(i in 1:length(req)) {req[[i]]$variable = keepvar}
+  
+  # adjust target to split into different folders
+  for(i in 1:length(req_land)) {
+    req_land[[i]]$target = paste0("era5_land/", req_land[[i]]$target)
+    req[[i]]$target = paste0("era5_reanalysis/", req[[i]]$target)
+  }
+  
+  # make reanalysis and land folders
+  dirland = paste0(pathout, "era5_land/")
+  dirreanalysis = paste0(pathout, "era5_reanalysis/")
+  if(!dir.exists(dirland)) {dir.create(dirland, recursive = T)}
+  if(!dir.exists(dirreanalysis)) {dir.create(dirreanalysis, recursive = T)}
+  
   # check which downloads already exist
-  keep<-rep(TRUE,length(req))
+  keep_r<-rep(TRUE,length(req))
   for (i in 1:length(req)) {
     fi<-paste0(pathout,req[[i]]$target)
     fi<-gsub("zip", "nc", fi) # test if .nc file exists
-    if (file.exists(fi)) keep[i]<-FALSE
+    if (file.exists(fi)) keep_r[i]<-FALSE
   }
-  s<-which(keep)
+  s<-which(keep_r)
   req2<-req[s]
+  
+  keep_l<-rep(TRUE,length(req_land))
+  for (i in 1:length(req_land)) {
+    fi<-paste0(pathout,req_land[[i]]$target)
+    fi<-gsub("zip", "nc", fi) # test if .nc file exists
+    if (file.exists(fi)) keep_l[i]<-FALSE
+  }
+  s<-which(keep_l)
+  req_land2<-req_land[s]
+  
   # download data
-  dir.create(pathout,showWarnings=FALSE)
+  # dir.create(pathout,showWarnings=FALSE)
   if(length(req2) != 0) {
     mcera5::request_era5(request = req2, uid = uid, out_path = pathout)
   }
   
+  if(length(req_land2) != 0) {
+    mcera5::request_era5(request = req_land2, uid = uid, out_path = pathout)
+  }
+  
   # remove the zip file if clean == TRUE
   if(clean) {
-    fpaths = paste0(pathout,sapply(req, "[[", "target"))
-    for(i in fpaths) {
+    fpaths1 = paste0(pathout,sapply(req, "[[", "target"))
+    for(i in fpaths1) {
       if(file.exists(i)) unlink(i)
     }
   }
   
-  return(req)
+  out = list(req, req_land)
+  names(out) <- c("era5_reanalysis", "era5_land")
+  return(out)
 }
 
 #' @title Downloads UK Met Office climate data
@@ -325,18 +368,22 @@ era5_process <- function(req, pathin, r, tme, out = "grid", lat = NA, long = NA,
     files<-list.files(pathin)
     n<-length(files)
   } else {
-    n<-length(req)
-    files <- ""
-    for (i in 1:n) files[i]<-req[[i]]$target
+    n<-length(req[[1]]) # number of months
+    files_r <- files_l <- ""
+    for (i in 1:n) files_r[i]<-req[[1]][[i]]$target # reanalysis
+    for (i in 1:n) files_l[i]<-req[[2]][[i]]$target # land
   }
   # Get raster template for nc file
-  files = gsub("zip", "nc", files)
-  nc<-paste0(pathin,files[1])
+  files_r = gsub("zip", "nc", files_r)
+  files_l = gsub("zip", "nc", files_l)
+  files <- mapply(function(x,y){c(paste0(pathin,x),paste0(pathin, y))}, files_r, files_l, SIMPLIFY = F)
+  
+  nc<-files[[1]]
   # Grid process
   climdata<-.extract_clima(nc, r, resampleout)
   if (n > 1) {
     for (i in 2:n) {
-      nc<-paste0(pathin,files[i])
+      nc<-files[[i]]
       climone<-.extract_clima(nc, r, resampleout)
       for (j in 1:9)  climdata[[j]]<-c(climdata[[j]], climone[[j]])
     }
