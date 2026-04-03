@@ -123,6 +123,7 @@ soildata_download<-function(r, pathdir = getwd(), deletefiles = TRUE) {
     if(ii == 1) ro<-project(ro,ri)
     ro<-c(ro,ri)
   }
+  ro <- ro[[2:5]]
   names(ro)<-vars
   return(ro)
 }
