@@ -120,7 +120,7 @@ soildata_download<-function(r, pathdir = getwd(), deletefiles = TRUE) {
       ri<-rast(fi)*wgts[jj]+ri
       if(deletefiles) unlink(fi)
     }
-    if(ii == 1) ro<-resample(ro,ri)
+    if(ii == 1) ro<-project(ro,ri)
     ro<-c(ro,ri)
   }
   names(ro)<-vars
