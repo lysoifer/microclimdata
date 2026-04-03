@@ -799,6 +799,8 @@ era5_process: Adjusted to accommodate the combination of era5 reanalysis and era
 
 To check: in .extract_clima the coefficient for correction of diurnal temperature ranges near water is 1.285. Check if this is still accurate for ERA5 land.
 
+## Vegetation
 
+GEDI data provides information about the vertical distribution of plant area index. There are two options for downloading GEDI data. 1) From orbits: `gedi_download()` will download orbits with and extent that falls within the specified area of interest. Downloading filters to only points with l2b_quality_flag = 0 and power beams. 2) Alternatively, you can download gedi data in tiles using `gedi_download_tiles()`, but the temporal extent is limited to 2019 - 2022. These points are from Burns et al. 2024, and are already filtered to high quality points, but include power and coverage beams. After downloading the data, run `gedi_process()`. If you downloaded points from orbits set type = 'points', while if you downloaded points from tiles set type = 'tiles'. If type = 'tiles' beams will automatically be filtered to only include power beams. Use the list of filters as described in the function documentation to filter the data as you wish.
 
 

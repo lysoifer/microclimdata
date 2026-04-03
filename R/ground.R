@@ -289,7 +289,7 @@ albedo_process<-function(r, pathin)  {
   # summarize and mosaic tiles
   f = list.files(tempdir, full.names = T)
   # get tile and date
-  fsplit = sapply(strsplit(f, "\\/"), "[[", 9)
+  fsplit = stringr::str_split_i(f, "\\/", -1)
   fsplit = lapply(fsplit, strsplit, "\\.")
   fsplit = lapply(fsplit, "[[", 1)
   dat = gsub("A", "", sapply(fsplit, "[[", 2))

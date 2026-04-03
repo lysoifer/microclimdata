@@ -285,3 +285,7 @@ calcclumpcpp <- function(leafd, hgt, lai, mx = 0.48) {
     .Call(`_microclimdata_calcclumpcpp`, leafd, hgt, lai, mx)
 }
 
+pai_vertprofilecpp <- function(paiz_matrix, h_vec, pai_vec) {
+    .Call(`_microclimdata_pai_vertprofilecpp`, paiz_matrix, h_vec, pai_vec)
+}
+

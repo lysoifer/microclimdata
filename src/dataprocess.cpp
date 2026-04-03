@@ -2540,3 +2540,49 @@ NumericMatrix calcclumpcpp(NumericMatrix leafd, NumericMatrix hgt,
     }
     return clump;
 }
+// [[Rcpp::export]]
+List pai_vertprofilecpp(NumericMatrix paiz_matrix, 
+                                        NumericVector h_vec, 
+                                        NumericVector pai_vec) {
+  int n_rows = h_vec.size();
+  List hz_list(n_rows);
+  List paiz_list(n_rows);
+  Environment base("package:stats");
+  Function splinefun = base["splinefun"];
+  
+  for (int i = 0; i < n_rows; i++) {
+    double h = h_vec[i];
+    // Create height intervals
+    int h_int_len = floor(h/5) + 2;
+    NumericVector h_int(h_int_len);
+    for (int j = 0; j < h_int_len; j++) {
+      h_int[j] = j * 5.0;
+    }
+    // Create interpolation points
+    std::vector<double> h_int2;
+    double h_floor = std::floor(h);
+    for (double val = 0.0; val <= h_floor; val += 0.5) {
+      h_int2.push_back(val);
+    }
+    // Extract PAI values for this row
+    NumericVector pai_z(h_int_len);
+    for (int j = 0; j < h_int_len; j++) {
+      pai_z[j] = paiz_matrix(i, j);
+    }
+    // Use R's spline function from C++
+    Function monospline = splinefun(h_int, pai_z, Named("method") = "monoH.FC");
+    NumericVector pai_zspline = monospline(h_int2);
+    
+    // Calculate differences
+    NumericVector pai_z2(h_int2.size());
+    for (int j = 0; j < h_int2.size() - 1; j++) {
+      pai_z2[j] = pai_zspline[j] - pai_zspline[j+1];
+    }
+    pai_z2[h_int2.size()-1] = pai_zspline[h_int2.size()-1];
+    // Store only the vectors we need
+    hz_list[i] = wrap(h_int2);
+    paiz_list[i] = pai_z2;
+  }
+  return List::create(Named("hz") = hz_list, 
+                      Named("paiz") = paiz_list);
+}

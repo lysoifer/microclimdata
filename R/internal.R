@@ -708,7 +708,7 @@
   return(r)
 }
 #' Get L2B profile including beam number, shot number, quality flag, time, lat, lon, elevation, rh100 (canopy height), pai (total pai), and pai_z. Adapted from rGEDI
-.getL2Bprofile<-function(level2b, clean = T){
+.getL2Bprofile<-function(level2b, e, clean = T){
   level2b<-level2b@h5
   groups_id<-grep("BEAM\\d{4}$",gsub("/","",
                                      hdf5r::list.groups(level2b, recursive = F)), value = T)
@@ -732,6 +732,13 @@
       elev_lowestmode=level2b_i[["geolocation/elev_lowestmode"]][],
       solar_elevation=level2b_i[["geolocation/solar_elevation"]][],
       leaf_off_flag=level2b_i[["land_cover_data/leaf_off_flag"]][],
+      landsat_treecover = level2b_i[["land_cover_data/landsat_treecover"]][],
+      landsat_water_persistence = level2b_i[["land_cover_data/landsat_water_persistence"]][],
+      modis_nonvegetated = level2b_i[["land_cover_data/modis_nonvegetated"]][],
+      modis_treecover = level2b_i[["land_cover_data/modis_treecover"]][],
+      pft_class = level2b_i[["land_cover_data/pft_class"]][],
+      region_class = level2b_i[["land_cover_data/region_class"]][],
+      urban_proportion = level2b_i[["land_cover_data/urban_proportion"]][],
       rh100 = level2b_i[["rh100"]][],
       pai = level2b_i[["pai"]][],
       pai_z=t(level2b_i[["pai_z"]][,1:level2b_i[["pai_z"]]$dims[2]]))
@@ -741,15 +748,20 @@
                     "l2b_quality_flag", "degrade_flag", "sensitivity",
                     "delta_time","lat_lowestmode",
                     "lon_lowestmode",
-                    "elev_lowestmode", "solar_elevation", "leaf_off_flag", "rh100", "pai",
+                    "elev_lowestmode", "solar_elevation", "leaf_off_flag",
+                    "landsat_treecover", "landsat_water_persistence",
+                    "modis_nonvegetated", "modis_treecover", "pft_class",
+                    "region_class", "urban_proportion",
+                    "rh100", "pai",
                     paste0("pai_z",seq(0,30*5,5)[-31],"_",seq(5,30*5,5),"m"))
   close(pb)
   
-  m.dt = m.dt %>% 
-    filter(l2b_quality_flag==1)
+  m.dt = m.dt[l2b_quality_flag!=0] # remove poor quality points
+  m.dt = m.dt[beam=="BEAM0101" | beam=="BEAM0110" | beam=="BEAM1000" | beam=="BEAM1011"] # select power beams
+  
   nm = level2b$filename
   nm2 = gsub(".h5", ".csv", nm)
-  fwrite(m.dt, nm2)
+  data.table::fwrite(m.dt, nm2)
   
   if(clean) {
     rm(level2b)
@@ -758,7 +770,7 @@
   
   return(nm2)
 }
-#' PAI vertical profile
+#' PAI vertical profile - moved to cpp function
 #' Calculate pai vertical profile from gedi data
 #' Values add up to total PAI (for input into micropoint paii argument)
 #'
@@ -773,32 +785,32 @@
 #' of pavd in a given layer to the total pavd. These two methods will return slightly different vertical profiles.
 #'
 #' @return PAI profile at 1 m intervals from ground to top of canopy. Values add up to total PAI in gedi data
-.pai_vertprofile = function(pai_z, h, pai, vertpai_method = "pai") {
-  
-  # sum of vertical pai profile must equal total pai for the model to run
-  
-  if(vertpai_method == "pai") {
-    h_int = seq(0,floor(h)+5, 5)
-    # for micropoint to run, need to have paii at least length 10
-    if(h >= 10) {
-      h_int2 = seq(0,floor(h), 1)
-    }
-    if(h<10 & h>1) {
-      h_int2 = seq(0,floor(h), length.out = 10)
-    }
-    if(h<1) {
-      h_int2 = seq(0,plyr::round_any(h,0.01,floor), length.out = 10)
-    }
-    
-    
-    pai_z = pai_z[1:length(h_int)]
-    
-    # apply a monotonically decreasing spline
-    monospline = splinefun(h_int, pai_z, method = "monoH.FC")
-    pai_zspline = monospline(h_int2)
-    pai_z2 = pai_zspline - c(pai_zspline[2:length(pai_zspline)],0)
-    vertprof = data.frame(h = h_int2, paiz = pai_z2, pai_total = pai, canopy_height = h)
-  }
+# .pai_vertprofile = function(pai_z, h, pai, vertpai_method = "pai") {
+#   
+#   # sum of vertical pai profile must equal total pai for the model to run
+#   
+#   if(vertpai_method == "pai") {
+#     h_int = seq(0,floor(h)+5, 5)
+#     # for micropoint to run, need to have paii at least length 10
+#     if(h >= 10) {
+#       h_int2 = seq(0,floor(h), 1)
+#     }
+#     if(h<10 & h>1) {
+#       h_int2 = seq(0,floor(h), length.out = 10)
+#     }
+#     if(h<1) {
+#       h_int2 = seq(0,plyr::round_any(h,0.01,floor), length.out = 10)
+#     }
+#     
+#     
+#     pai_z = pai_z[1:length(h_int)]
+#     
+#     # apply a monotonically decreasing spline
+#     monospline = splinefun(h_int, pai_z, method = "monoH.FC")
+#     pai_zspline = monospline(h_int2)
+#     pai_z2 = pai_zspline - c(pai_zspline[2:length(pai_zspline)],0)
+#     vertprof = data.frame(h = h_int2, paiz = pai_z2, pai_total = pai, canopy_height = h)
+#   }
   
   
   # We add zero to the list of PAIz values because pai at the top of the canopy = 0 (see paiz description in gedi documentation)
@@ -818,8 +830,8 @@
   #   pavdprop = pavdspline/sum(pavdspline)
   #   pai_z2 = pai*pavdprop
   # }
-  return(vertprof)
-}
+#   return(vertprof)
+# }
 #' @title applies altitudinal correction to climate data for a point
 #' @description This function applies a lapse rate correction to the climdata
 #' dataframe as used by the `micropoint` package based on the difference between the

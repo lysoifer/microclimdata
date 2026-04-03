@@ -4,7 +4,7 @@
 \alias{.getL2Bprofile}
 \title{Get L2B profile including beam number, shot number, quality flag, time, lat, lon, elevation, rh100 (canopy height), pai (total pai), and pai_z. Adapted from rGEDI}
 \usage{
-.getL2Bprofile(level2b, clean = T)
+.getL2Bprofile(level2b, e, clean = T)
 }
 \description{
 Get L2B profile including beam number, shot number, quality flag, time, lat, lon, elevation, rh100 (canopy height), pai (total pai), and pai_z. Adapted from rGEDI

@@ -7,11 +7,12 @@
 gedi_process(
   l2b,
   aoi,
-  powerbeam = TRUE,
-  yr = NULL,
-  mth = NULL,
-  night = TRUE,
-  leafon = FALSE
+  type,
+  clean = F,
+  filters = list(yr = NULL, mth = NULL, solar_elevation = "night", sensitivity = c(0.9,
+    1), leaf_off_flag = 0, landsat_treecover = NULL, landsat_water_persistence = NULL,
+    modis_nonvegetated = NULL, modis_treecover = NULL, pft_class = NULL, region_class =
+    NULL, urban_proportion = NULL, rh100 = NULL, pai = NULL, elev = NULL)
 )
 }
 \arguments{
@@ -19,21 +20,27 @@ gedi_process(
 
 \item{aoi}{spatRaster or spatVector to crop gedi data}
 
-\item{powerbeam}{default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams}
+\item{type}{character; either 'points' or 'tiles'. Use points if data was downloaded
+from using `gedi_download()`. Use tiles if data was downloaded using `download_gedi_tiles()`.}
 
-\item{yr}{optional; 4 digit year (YYYY) to filter GEDI data}
+\item{clean}{logical; if TRUE, deletes csv files in l2b vector to save space.}
 
-\item{mth}{optional; 2 digit month (MM) to filter GEDI data}
-
-\item{night}{filter out daytime shots (default = TRUE)}
-
-\item{leafon}{only keep shots during leaf on period (default=FALSE)}
+\item{filters}{list of filters to apply to gedi data. Data is already filtered to only power beams
+Refer to the GEDI v2 data dictionary for descriptions of each parameter
+Notes: yr = year, mth = month, recommend solar elevation = night and sensitivity greater
+than 0.9. Continuous variables (eg. percents can take either a single integer
+or a vector of length 2, which will filter the data to between max and min values).
+Categorical variables (eg. pft_class take a vector of any length with the requested
+numeric categories).
+If type = 'tiles' cannot modis_nonvegetated and modis_treecover in filters list must be NULL}
 }
 \value{
 a dataframe of vegetation information with the following values
 \describe{
   \item{pai}{Total plant area index value}
-  \item{pai_z_}{plant area index between z1 to z2 m above ground}
+  \item{pai_z}{plant area index between z1 to z2 m above ground at 0.5m height intervals}
+  \item{hz}{height at which paiz is estimated (0.5 m intervals)}
+  \item{rh100}{top of canopy height}
 }
 }
 \description{

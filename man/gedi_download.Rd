@@ -4,14 +4,15 @@
 \alias{gedi_download}
 \title{download GEDI data for microclimate models}
 \usage{
-gedi_download(aoi, outdir, overwrite = F, clean = T)
+gedi_download(aoi, outdir, creds, overwrite = F, clean = T)
 }
 \arguments{
-\item{aoi}{spatRaster or spatVector defining the area of interest. If aoi is a spatVector
-the function will download orbits that intersect with each feature. If a spatRaster, then
-the function will download orbits that intersect with the extent.}
+\item{aoi}{spatRaster or spatVector defining the area of interest. Downloads 
+orbits that intersect with the extent.}
 
 \item{outdir}{directory to save files}
+
+\item{creds}{credentials dataframe as described in microclimdta vignette}
 
 \item{overwrite}{should files be overwritten}
 

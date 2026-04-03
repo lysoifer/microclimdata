@@ -921,195 +921,308 @@ vegpfromgrid <- function(veggrid, lat, long, llcrs, pai=NULL, ch=NULL) {
   return(vegpp)
 }
 
-#'@title Find gedi orbits
-#'@description Define Function to Query CMR
-#'The function returns a list of links to download the files of GEDI transects intersecting the bounding box
-#'sub-orbit V2 granules directly from the LP DAAC's Data Pool.
-#'
-#'@param product can be  'GEDI01_B.002', 'GEDI02_A.002', 'GEDI02_B.002'
-#'@param bbox area of interest. bbox can be a character "LLlong,LLlat,URlong,URlat" coordinates in WGS84, a spatVector, or a spatRaster
-#'
-#' @return list of granules with shots in bbox
-#'
-#' @export
-gedi_finder <- function(product, bbox) {
-  
-  # Define the base CMR granule search url, including LPDAAC provider name and max page size (2000 is the max allowed)
-  
-  cmr <- "https://cmr.earthdata.nasa.gov/search/granules.json?pretty=true&provider=LPCLOUD&page_size=2000&concept_id="
-  
-  # Set up list where key is GEDI shortname + version and value is CMR Concept ID
-  concept_ids <- list('GEDI01_B.002'='C2142749196-LPCLOUD',
-                      'GEDI02_A.002'='C2142771958-LPCLOUD',
-                      'GEDI02_B.002'='C2142776747-LPCLOUD')
-  
-  if(is(bbox, "SpatVector") | is(bbox, "SpatRaster")) {
-    bbox = .bbox_to_char(bbox, "xmin,ymin,xmax,ymax")
-  }
-  
-  # CMR uses pagination for queries with more features returned than the page size
-  page <- 1
-  bbox <- sub(' ', '', bbox)  # Remove any white spaces
-  granules <- list()          # Set up a list to store and append granule links to
-  
-  # Send GET request to CMR granule search endpoint w/ product concept ID, bbox & page number
-  cmr_response <- httr::GET(sprintf("%s%s&bounding_box=%s&pageNum=%s", cmr, concept_ids[[product]],bbox,page))
-  
-  # Verify the request submission was successful
-  if (cmr_response$status_code==200){
-    
-    # Send GET request to CMR granule search endpoint w/ product concept ID, bbox & page number, format return as a list
-    cmr_url <- sprintf("%s%s&bounding_box=%s&pageNum=%s", cmr, concept_ids[[product]],bbox,page)
-    cmr_response <- httr::content(httr::GET(cmr_url))$feed$entry
-    
-    # If 2000 features are returned, move to the next page and submit another request, and append to the response
-    while(length(cmr_response) %% 2000 == 0){
-      page <- page + 1
-      cmr_url <- sprintf("%s%s&bounding_box=%s&pageNum=%s", cmr, concept_ids[[product]],bbox,page)
-      cmr_response <- c(cmr_response, httr::content(httr::GET(cmr_url))$feed$entry)
-    }
-    
-    # CMR returns more info than just the Data Pool links, below use for loop to grab each DP link, and add to list
-    for (i in 1:length(cmr_response)) {
-      granules[[i]] <- cmr_response[[i]]$links[[1]]$href
-    }
-    
-    # Return the list of links
-    return(granules)
-  } else {
-    
-    # If the request did not complete successfully, print out the response from CMR
-    print(httr::content(httr::GET(sprintf("%s%s&bounding_box=%s&pageNum=%s", cmr, concept_ids[[product]],bbox,page)))$errors)
-  }
-}
-
 #' @title Process GEDI data for use in point-based microclimate models
 #'
 #' @description Extracts data from the L2B profile and calculates vertical PAI profile. The sum of the vertical PAI profile = total PAI
 
 #' @param l2b character vector of hd5 files of GEDI L2B data (downloaded using gedi_download)
 #' @param aoi spatRaster or spatVector to crop gedi data
-#' @param powerbeam default TRUE; if TRUE filters to only power beams; if FALSE includes power and coverage beams
-#' @param yr optional; 4 digit year (YYYY) to filter GEDI data
-#' @param mth optional; 2 digit month (MM) to filter GEDI data
-#' @param night filter out daytime shots (default = TRUE)
-#' @param leafon only keep shots during leaf on period (default=FALSE)
+#' @param type character; either 'points' or 'tiles'. Use points if data was downloaded
+#' from using `gedi_download()`. Use tiles if data was downloaded using `download_gedi_tiles()`.
+#' @param clean logical; if TRUE, deletes csv files in l2b vector to save space. 
+#' @param filters list of filters to apply to gedi data. Data is already filtered to only power beams
+#' Refer to the GEDI v2 data dictionary for descriptions of each parameter
+#' Notes: yr = year, mth = month, recommend solar elevation = night and sensitivity greater
+#' than 0.9. Continuous variables (eg. percents can take either a single integer
+#' or a vector of length 2, which will filter the data to between max and min values).
+#' Categorical variables (eg. pft_class take a vector of any length with the requested
+#' numeric categories).
+#' If type = 'tiles' cannot modis_nonvegetated and modis_treecover in filters list must be NULL
 #' @returns a dataframe of vegetation information with the following values
 #' \describe{
 #'   \item{pai}{Total plant area index value}
-#'   \item{pai_z_}{plant area index between z1 to z2 m above ground}
+#'   \item{pai_z}{plant area index between z1 to z2 m above ground at 0.5m height intervals}
+#'   \item{hz}{height at which paiz is estimated (0.5 m intervals)}
+#'   \item{rh100}{top of canopy height}
 #' }
 #' @import rGEDI
 #' @export
-gedi_process<-function(l2b, aoi, powerbeam=TRUE, yr=NULL, mth=NULL, night=TRUE, leafon=FALSE) {
-  gedi = list()
+gedi_process<-function(l2b, aoi, type, clean = F, filters = list(yr = NULL, mth = NULL, solar_elevation = "night",
+                                                sensitivity = c(0.9,1),
+                                                leaf_off_flag = 0, landsat_treecover = NULL,
+                                                landsat_water_persistence = NULL, modis_nonvegetated = NULL,
+                                                modis_treecover = NULL, pft_class = NULL, region_class = NULL, urban_proportion = NULL,
+                                                rh100 = NULL, pai = NULL, elev = NULL)) {
+  gedi = data.table::data.table()
   # if(crs(r, proj=T)!= "+proj=longlat +datum=WGS84 +no_defs") r = project(r, "epsg:4326")
   for(i in 1:length(l2b)) {
+    
+    l2b_i = data.table::fread(l2b[i])
+    
+    if(type == "tiles") {
+      painames = paste0("pai_l", 1:21)
+      oldnames = c("date", "sol_elev", "sens_a0", "leafoff_flag", "ls_treecov", "ls_waterp",
+                   "pft", "region", "urb_prop", "rh_100_a0", "pai_a0", "elev_lm_a0", "lon_lm_a0", "lat_lm_a0", painames)
+      pai_newnames <- paste0("pai_z", seq(0,100,5), "_", seq(5,105,5), "m")
+      newnames = c("shot_time", "solar_elevation", "sensitivity", "leaf_off_flag", "landsat_treecover",
+                   "landsat_water_peresistence", "pft_class", "region_class", 
+                   "urban_proportion", "rh100", "pai", "elev_lowestmode", "lon_lowestmode", "lat_lowestmode", pai_newnames)
+      data.table::setnames(l2b_i, oldnames, newnames)
+      
+      # filter to power beams
+      l2b_i = l2b_i[beam=="BEAM0101" | beam=="BEAM0110" | beam=="BEAM1000" | beam=="BEAM1011"]
+    }
+    
+    if(type == "points") {
+      # assign date
+      l2b_i <- l2b_i[,shot_time := as.POSIXlt("2018-01-01") + delta_time]  # see l2b data dictionary for calculation of shot time
+      l2b_i <- l2b_i[,rh100 := rh100/100]  # convert rh100 from cm to m
+      
+      # filter modis nonvegetated
+      if(!is.null(filters[["modis_nonvegetated"]])) {
+        # if length is 2, filter to values between max and min
+        if(length(filters[["modis_nonvegetated"]])==2) {
+          l2b_i = l2b_i[modis_nonvegetated>=filters[["modis_nonvegetated"]][1]]
+          l2b_i = l2b_i[modis_nonvegetated<=filters[["modis_nonvegetated"]][2]]
+        } else if(length(filters[["modis_nonvegetated"]])==1) {
+          # if length is 1, filter to the specific percetn tree cover
+          l2b_i = l2b_i[modis_nonvegetated==filters[["modis_nonvegetated"]]]
+        } else {
+          stop("modis_nonvegetated must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+        }
+      }
+      # filter modis treecover
+      if(!is.null(filters[["modis_treecover"]])) {
+        # if length is 2, filter to values between max and min
+        if(length(filters[["modis_treecover"]])==2) {
+          l2b_i = l2b_i[modis_treecover>=filters[["modis_treecover"]][1]]
+          l2b_i = l2b_i[modis_treecover<=filters[["modis_treecover"]][2]]
+        } else if(length(filters[["modis_treecover"]])==1) {
+          # if length is 1, filter to the specific percetn tree cover
+          l2b_i = l2b_i[modis_treecover==filters[["modis_treecover"]]]
+        } else {
+          stop("modis_treecover must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+        }
+      }
+    }
+    
+    # filter by year
+    if(!is.null(filters[["yr"]])) {
+      l2b_i[, yr := year(shot_time)]
+      # if length is 2, filter to values between max and min
+      if(length(filters[["yr"]])==2) {
+        l2b_i = l2b_i[yr>=filters[["yr"]][1]]
+        l2b_i = l2b_i[yr<=filters[["yr"]][2]]
+      } else if(length(filters[["yr"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[yr==filters[["yr"]]]
+      } else {
+        stop("yr must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # filter by month
+    if(!is.null(filters[["mth"]])) {
+      l2b_i[, mth := month(shot_time)]
+      # if length is 2, filter to values between max and min
+      if(length(filters[["mth"]])==2) {
+        l2b_i = l2b_i[mth>=filters[["mth"]][1]]
+        l2b_i = l2b_i[mth<=filters[["mth"]][2]]
+      } else if(length(filters[["mth"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[yr==filters[["mth"]]]
+      } else {
+        stop("yr must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # remove day time shots
+    if(is.null(filters[["solar_elevation"]])) {
+      l2b_i <- l2b_i[solar_elevation<0]
+    }
+    # filter sensitivity
+    if(!is.null(filters[["sensitivity"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["sensitivity"]])==2) {
+        l2b_i = l2b_i[sensitivity>=filters[["sensitivity"]][1]]
+        l2b_i = l2b_i[sensitivity<=filters[["sensitivity"]][2]]
+      } else if(length(filters[["sensitivity"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[sensitivity==filters[["sensitivity"]]]
+      } else {
+        stop("sensitivity must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # only keep leaf on shots
+    if(!is.null(filters[["leaf_off_flag"]])) {
+      l2b_i = l2b_i[leaf_off_flag==filters[["leaf_off_flag"]]]
+    }
+    # filter landsat treecover to specific value or between max and min
+    if(!is.null(filters[["landsat_treecover"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["landsat_treecover"]])==2) {
+        l2b_i = l2b_i[landsat_treecover>=filters[["landsat_treecover"]][1]]
+        l2b_i = l2b_i[landsat_treecover<=filters[["landsat_treecover"]][2]]
+      } else if(length(filters[["landsat_treecover"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[landsat_treecover==filters[["landsat_treecover"]]]
+      } else {
+        stop("landsat_treecover must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # filter landsat water persistence
+    if(!is.null(filters[["landsat_water_persistence"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["landsat_water_persistence"]])==2) {
+        l2b_i = l2b_i[landsat_water_persistence>=filters[["landsat_water_persistence"]][1]]
+        l2b_i = l2b_i[landsat_water_persistence<=filters[["landsat_water_persistence"]][2]]
+      } else if(length(filters[["landsat_water_persistence"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[landsat_water_persistence==filters[["landsat_water_persistence"]]]
+      } else {
+        stop("landsat_water_persistence must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
 
-    l2b_i = fread(l2b[i])
+    # filter modis pft class - provide vector of pft_classes
+    if(!is.null(filters[["pft_class"]])) {
+      l2b_i = l2b_i[pft_class %in% filters[["pft_class"]]]
+    }
+    # filter region class - provide vector of region_classes
+    if(!is.null(filters[["region_class"]])) {
+      l2b_i = l2b_i[region_class %in% filters[["region_class"]]]
+    }
+    # filter urban proportion
+    if(!is.null(filters[["urban_proportion"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["urban_proportion"]])==2) {
+        l2b_i = l2b_i[urban_proportion>=filters[["urban_proportion"]][1]]
+        l2b_i = l2b_i[urban_proportion<=filters[["urban_proportion"]][2]]
+      } else if(length(filters[["urban_proportion"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[urban_proportion==filters[["urban_proportion"]]]
+      } else {
+        stop("urban_proportion must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # filter rh100
+    if(!is.null(filters[["rh100"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["rh100"]])==2) {
+        l2b_i = l2b_i[rh100>=filters[["rh100"]][1]]
+        l2b_i = l2b_i[rh100<=filters[["rh100"]][2]]
+      } else if(length(filters[["rh100"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[rh100==filters[["rh100"]]]
+      } else {
+        stop("rh100 must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # filter pai
+    if(!is.null(filters[["pai"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["pai"]])==2) {
+        l2b_i = l2b_i[pai>=filters[["pai"]][1]]
+        l2b_i = l2b_i[pai<=filters[["pai"]][2]]
+      } else if(length(filters[["pai"]])==1) {
+        # if length is 1, filter to the specific percetn tree cover
+        l2b_i = l2b_i[pai==filters[["pai"]]]
+      } else {
+        stop("pai must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
+    # filter elevation
+    if(!is.null(filters[["elev"]])) {
+      # if length is 2, filter to values between max and min
+      if(length(filters[["elev"]])==2) {
+        l2b_i = l2b_i[elev_lowestmode>=filters[["elev"]][1]]
+        l2b_i = l2b_i[elev_lowestmode<=filters[["elev"]][2]]
+      } else if(length(filters[["elev"]])==1) {
+        # if length is 1, filter to the specific elevation
+        l2b_i = l2b_i[elev_lowestmode==filters[["elev"]]]
+      } else {
+        stop("elev must be length 1 if filtering to a specific value or 2 if filtering to a range of values")
+      }
+    }
     
-    aoi = project(aoi, "epsg:4326")
-    e = ext(aoi)
-    
-    # filter out poor quality shots and crop to extent in r
-    l2b_i = l2b_i %>% 
-      filter(lon_lowestmode >= e[1] & lon_lowestmode <= e[2] & lat_lowestmode >= e[3] & lat_lowestmode <= e[4]) %>% 
-      # see l2b data dictionary for calculation of shot time
-      mutate(shot_time = as.POSIXlt("2018-01-01") + delta_time,
-             # convert rh100 from cm to m
-             rh100 = rh100/100)
-    
+    # crop to study area
     if(is(aoi, "SpatVector")) {
+      aoi = project(aoi, "epsg:4326")
       l2b_i = l2b_i %>% 
         vect(geom = c("lon_lowestmode", "lat_lowestmode"), crs = "epsg:4326", keepgeom=T) %>% 
         crop(aoi) %>% 
         as.data.table()
+    } else {
+      e = ext(aoi)
+      e = project(e, from = crs(aoi), "epsg:4326")
+      l2b_i <- l2b_i[lon_lowestmode >= e[1]]
+      l2b_i <- l2b_i[lon_lowestmode <= e[2]]
+      l2b_i <- l2b_i[lat_lowestmode >= e[3]]
+      l2b_i <- l2b_i[lat_lowestmode <= e[4]]
     }
-   
+    # if there are still points left after all of the filtering process the data for use in micropoint
     # calculate vertical profile for use in run_micropoint. sum of the profile = total PAI (run check before running micropoint)
     # to prevent R crashing
-    if(nrow(l2b_i)>0) {
-      # filter to power beams, year, and month if requested
-      if(powerbeam) {
-        l2b_i = l2b_i %>% 
-          filter(beam == "BEAM0101" | beam == "BEAM0110" | beam == "BEAM1000" | beam == "BEAM1011")
-      }
+    if(nrow(l2b_i) > 0) {
+      l2b_i <- as.data.frame(l2b_i)
+      pai_cols <- grep("pai_z", colnames(l2b_i), value = T)
+      # pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
+      paiz_matrix <- as.matrix(l2b_i[, pai_cols])
+      h <- l2b_i[, "rh100"]
+      pai <- l2b_i[, "pai"]
       
-      # remove day time shots
-      if(night) {
-        l2b_i = l2b_i %>% filter(solar_elevation<0)
-      }
-      
-      # only keep leaf on shots
-      if(leafon) {
-        l2b_i = l2b_i %>% filter(leaf_off_flag==0)
-      }
-      
-      if(!is.null(yr)) {
-        l2b_i[, yr := year(shot_time)]
-        l2b_i = l2b_i %>% filter(yr==yr)
-      }
-      if(!is.null(mth)) {
-        l2b_i[, mth := month(shot_time)]
-        l2b_i = l2b_i %>% filter(mth==mth)
-      }
-      
-      l2b_i = as.data.frame(l2b_i)
-      pai_cols <- paste0("pai_z", seq(0, 145, 5), "_", seq(5, 150, 5), "m")
-      paiz = l2b_i[, pai_cols]
-      paiz = apply(paiz, 1, as.list)
-      paiz = lapply(paiz, unlist)
-      h = as.vector(l2b_i[,"rh100"])
-      pai = as.vector(l2b_i[,"pai"])
-      vertprofile = mapply(.pai_vertprofile, paiz, h, pai, SIMPLIFY = F)
-      l2b_i$hz = lapply(vertprofile, function(x){unlist(x[,1])})
-      l2b_i$paiz = lapply(vertprofile, function(x){unlist(x[,2])})
-      if(nrow(l2b_i)>0) gedi[[i]] = l2b_i
+      vertprofile <- pai_vertprofilecpp(paiz_matrix, h, pai)
+      l2b_i$hz <- vertprofile$hz
+      l2b_i$paiz <- vertprofile$paiz
+    } else {
+      l2b_i[, hz := NA]
+      l2b_i[, paiz := NA]
     }
+    
+    gedi = rbind(gedi, l2b_i)
   }
-  gedi = bind_rows(gedi)
+  
+  if(clean) {
+    unlink(l2b)
+  }
+  
   return(gedi)
 }
 
 #' @title download GEDI data for microclimate models
 #' @description downloads and saves quality checked vertical profiles of PAI as csv
 #' 
-#' @param aoi spatRaster or spatVector defining the area of interest. If aoi is a spatVector
-#' the function will download orbits that intersect with each feature. If a spatRaster, then
-#' the function will download orbits that intersect with the extent.
+#' @param aoi spatRaster or spatVector defining the area of interest. Downloads 
+#' orbits that intersect with the extent.
 #' @param outdir directory to save files
+#' @param creds credentials dataframe as described in microclimdta vignette
 #' @param overwrite should files be overwritten
 #' @param clean if T, h5 files are deleted
-gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
-  aoi = project(aoi, "epsg:4326")
-  if(is(aoi, "SpatVector")) {
-    granules = c()
-    for(i in 1:nrow(aoi)) {
-      g = gedi_finder("GEDI02_B.002", aoi[i])
-      granules = c(granules, g)
-    }
-  } else {
-    granules = gedi_finder("GEDI02_B.002", aoi)
-  }
+#' @export
+gedi_download<-function(aoi, outdir, creds, overwrite=F, clean = T) {
   
-  granules = unlist(granules)
-  granules = granules[!duplicated(granules)]
+  e = ext(aoi)
+  e = project(e, from = crs(aoi), to = "epsg:4326")
+  granules = rGEDI::gedifinder(product = 'GEDI02_B', e[4], e[1], e[3], e[2], version = "002")
   l2b = paste0(outdir, basename(granules))
   
-  for(i in 1:length(granules)) {
-    # Download the file if it does not exist or if overwriting
+  # first make .netrc file if it does not already exist
+  file.create(paste0(gedi_raw, ".netrc"))
+  writeLines(paste0("machine urs.earthdata.nasa.gov\nlogin ", creds[1, "username"], "\npassword ", creds[1,"password"]),
+             paste0(gedi_raw, ".netrc"))
+  gvect = data.table::data.table()
+  for(i in 1:length(l2b)) {
+    # check if file exists
     exist = file.exists(l2b[i]) | file.exists(gsub(".h5", ".csv", l2b[i]))
     if(!exist | overwrite) {
-      gediDownload(granules[i], outdir = outdir, overwrite)
+      rGEDI::gediDownload(granules[i], outdir = outdir, overwrite)
     }
     
     # if not coverted to a csv already and clean = T
     if(!file.exists(gsub(".h5", ".csv", l2b[i])) | overwrite) {
       l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
-                     error = function(e){
-                       message("GEDI file corrupt: redownloading")
-                       return(NA)
-                     })
+                       error = function(e){
+                         message("GEDI file corrupt: redownloading")
+                         return(NA)
+                       })
       # redownload if the file is corrupt
       if(!is(l2b_i, "gedi.level2b")) {
         outdir = paste0(dirname(l2b[i]), "/")
@@ -1122,11 +1235,88 @@ gedi_download<-function(aoi, outdir, overwrite=F, clean = T) {
         l2b_i = tryCatch(rGEDI::readLevel2B(l2b[i]), 
                          warning = function(e){error("GEDI file corrupt: redownloading")})
       }
-      l2b_i = .getL2Bprofile(l2b_i, clean)
-    }
-  } # end for loop
+      l2b_i = .getL2Bprofile(l2b_i, clean)  
+    }}
   l2b = gsub(".h5", ".csv", l2b)
   return(l2b)
+}
+
+#' Download GEDI tiles
+#'
+#'@description
+#'Download cleaned tiles of NASA GEDI L2b data. Tiles are indexed by the lower left corner of the quadrant.
+#'Each tile is 1x1 degree. Cleaning of GEDI data was done following methods in
+#'Burns et al. 2024. Multi-resolution gredded maps of vegetation structure from GEDI
+#'https://doi.org/10.1038/s41597-024-03668-4
+#'These points all have leaf on conditions
+#'
+#' @param aoi spatraster, spatvector, or spatextent. If a spatextent is provided, 
+#' crs must be epsg:4326
+#' @param outdir file path for downloaded GEDI tiles
+#' @param unzip logical; should the downloaded file be unzipped warning if true, file sizes will be large
+#' @param download logical (default TRUE) if TRUE will download gedi tiles, if false will only return file paths
+#'
+#' @return vector names of filepaths or filenames of downloaded tiles if download == TRUE
+#' @export
+#'
+#'
+gedi_download_tiles = function(aoi, outdir, unzip = F, download = T) {
+  # download GEDI tiles from Patrick Burns' prefiltered tile footprint database
+  # see filters in Burns et al. 2024
+  # tiles are indexed by lower left corner of the quadrant
+  # each tile is 1 by 1 degree
+  
+  if(methods::is(aoi, "SpatVector") | methods::is(aoi, "SpatRaster")) {
+    e = terra::ext(aoi)
+    e = project(e, from = crs(aoi), to = "epsg:4326")
+  }
+  
+  xmin = floor(e[1])
+  ymin = floor(e[3])
+  xmax = floor(e[2])
+  ymax = floor(e[4])
+  
+  xs = seq(xmin, xmax, 1)
+  ys = seq(ymin, ymax, 1)
+  
+  fnames = c()
+  for(x in xs[1:length(xs)]) {
+    for(y in ys[1:length(ys)]) {
+      url = "https://rcdata.nau.edu/geode_data/GEDIv002_L0204A_20190417to20230316_proc202312/tables/gediv002_l2l4a_va_g"
+      if(x<0) {
+        lon = paste0(numform::f_pad_zero(abs(x),3),"w")
+      } else {
+        lon = paste0(numform::f_pad_zero(x, 3), "e")
+      }
+      if(y<0) {
+        lat = paste0(numform::f_pad_zero(abs(y), 2), "s")
+      } else {
+        lat = paste0(numform::f_pad_zero(y, 2), "n")
+      }
+      url = paste0(url,lon,lat,".zip")
+      
+      fname = strsplit(url, split = "/")
+      fname = fname[[1]][length(fname[[1]])]
+      fname = paste0(outdir, fname)
+      
+      fname.csv = gsub("zip", "csv", fname)
+      fnames = c(fnames, fname.csv)
+      if(download & (!(file.exists(fname) | file.exists(fname.csv)))) {
+        dl = try(utils::download.file(url = url, destfile = fname))
+        if(dl != 0) {
+          warning(paste0("Download of ", url, " failed. Tile might be in the ocean"))
+        }
+      }
+      
+      if(!file.exists(fname.csv) & download) {
+        if(unzip & dl == 0) {
+          unzip(fname, exdir = outdir)
+          file.remove(fname)
+        }
+      }
+    }
+  }
+  return(fnames)
 }
 
 #' @title grid gedi points

@@ -932,6 +932,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pai_vertprofilecpp
+List pai_vertprofilecpp(NumericMatrix paiz_matrix, NumericVector h_vec, NumericVector pai_vec);
+RcppExport SEXP _microclimdata_pai_vertprofilecpp(SEXP paiz_matrixSEXP, SEXP h_vecSEXP, SEXP pai_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type paiz_matrix(paiz_matrixSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type h_vec(h_vecSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type pai_vec(pai_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(pai_vertprofilecpp(paiz_matrix, h_vec, pai_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_microclimdata_na_approx", (DL_FUNC) &_microclimdata_na_approx, 1},
@@ -1005,6 +1018,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_microclimdata_getsoiltypecpp", (DL_FUNC) &_microclimdata_getsoiltypecpp, 4},
     {"_microclimdata_calcclumpcppone", (DL_FUNC) &_microclimdata_calcclumpcppone, 4},
     {"_microclimdata_calcclumpcpp", (DL_FUNC) &_microclimdata_calcclumpcpp, 4},
+    {"_microclimdata_pai_vertprofilecpp", (DL_FUNC) &_microclimdata_pai_vertprofilecpp, 3},
     {NULL, NULL, 0}
 };
 
