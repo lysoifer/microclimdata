@@ -841,19 +841,34 @@
 #' @import terra
 #' @export
 .altcorrectp<-function(climdata, dtmc_p, elev_p, altcor = 2) {
+  
+  satvap <- function(tc) {
+    neg <- tc < 0L
+    es <- rep(NA_real_, length(tc))
+    es[!neg] <- 0.61078 * exp(17.27 * tc[!neg] / (tc[!neg] + 237.3))
+    es[neg] <- 0.61078 * exp(21.875 * tc[neg] / (tc[neg] + 265.5))
+    es
+  }
+  lapserate <- function(tc, ea, pk) { # pk = atmospheric pressure (kPa)
+    rv<-0.622*ea/(pk-ea)
+    lr<-9.8076*(1+(2501000*rv)/(287*(tc+273.15)))/(1003.5+(0.622*2501000^2*rv)/(287*(tc+273.15)^2))
+    lr
+  }
+  
   h = nrow(climdata)
   pk = climdata$pres
-  es = microclimf:::.satvap(climdata$temp)
-  ea = es*climdata$relhum/100
-  tdew = microclimf:::.dewpoint(ea, climdata$temp)
-  psl<-pk/(((293-0.0065*rep(dtmc_p,h))/293)^5.26)
+  es = satvap(climdata$temp) # saturation vapor pressure
+  ea = es*climdata$relhum/100 # actual vapor pressure
+  # tdew = microclimf:::.dewpoint(ea, climdata$temp)
+  
+  psl<-pk/(((293-0.0065*rep(dtmc_p,h))/293)^5.26) # pressure at sea level
   pk = psl*(((293-0.0065*rep(elev_p,h))/293)^5.26)
   elevd = rep(dtmc_p - elev_p, h)
   
   if (altcor==1) {  # Fixed lapse rate
     tcdif<-elevd*(5/1000)
   } else { # Humidity-dependent lapse rate
-    lr<-microclimf:::.lapserate(climdata$temp,ea,pk)
+    lr<-lapserate(climdata$temp,ea,pk)
     tcdif<-lr*elevd
   }
   tc<-tcdif+climdata$temp

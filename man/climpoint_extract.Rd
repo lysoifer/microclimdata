@@ -33,12 +33,11 @@ humidity dependent lapse rate correction}
 
 \item{dtmc}{raster of era5 elevation data (optional; only needed if altcorrect>0)}
 
-\item{elev}{raster of elevation (optional; only needed if altcorrect>0)}
+\item{elev}{raster of elevation or numeric elevation (optional; only needed if altcorrect>0)}
 
-\item{proj}{if TRUE and climdata is not in a projected crs, reproject}
+\item{proj}{set TRUE if x,y, and climate are in projected coordinate system}
 
-\item{distweight}{if TRUE applies inverse distance weighting using 4 nearest cells to point
-when extracting climate data}
+\item{distweight}{if TRUE applies bilinear interpolation using 4 nearest neighbors to point of interest}
 }
 \description{
 This function extracts climate data from a climate arrays for any
