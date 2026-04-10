@@ -88,7 +88,7 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
                                     start_time = tme[1],
                                     end_time = tme[length(tme)],
                                     outfile_name = file_prefix)
-  keepvar <- c("total_sky_direct_solar_radiation_at_surface", "mean_surface_downward_long_wave_radiation_flux")
+  keepvar <- c("total_sky_direct_solar_radiation_at_surface", "mean_surface_downward_long_wave_radiation_flux", "land_sea_mask")
   for(i in 1:length(req)) {req[[i]]$variable = keepvar}
   
   # adjust target to split into different folders
@@ -138,6 +138,10 @@ era5_download<-function(r, tme, credentials, file_prefix, pathout, clean = T) {
     for(i in fpaths1) {
       if(file.exists(i)) unlink(i)
     }
+    # fpaths2 = paste0(pathout,sapply(req_land, "[[", "target"))
+    # for(i in fpaths2) {
+    #   if(file.exists(i)) unlink(i)
+    # }
   }
   
   out = list(req, req_land)
