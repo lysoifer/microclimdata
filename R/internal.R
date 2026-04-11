@@ -435,8 +435,23 @@
   rh[rh > 100]<-100
   rlsto[[2]]<-rh
   rlsto[[3]] <- rlst[[3]]/1000
-  rlsto[[4]] <- rlst[[9]]/3600
-  dni <- rlst[[8]]/3600
+  # swdown (dif + dir)
+  # era5 provides accumulation from 00:00 - calculate hourly
+  swdown <- rlst[[9]]
+  swdown <- c(swdown[[1]], diff(swdown)) # calculate hourly
+  swdown = swdown/3600 # convert from J/m2 to W/mw
+  swdown[[1]] <- mean(swdown[[seq(25,nlyr(swdown),24)]]) # approximate first value since there is no previous to calculate difference
+  swdown[swdown<0] <- 0 # negatives are 0 swrad
+  rlsto[[4]] <- swdown
+  
+  # swdown direct
+  fdir <- rlst[[8]]
+  fdir <- c(fdir[[1]], diff(fdir)) # calculate hourly
+  fdir = fdir/3600 # convert from J/m2 to W/mw
+  fdir[[1]] <- mean(fdir[[seq(25,nlyr(fdir),24)]]) # approximate first value since there is no previous to calculate difference
+  fdir[fdir<0] <- 0 # negatives are 0 swrad
+  dni <- fdir
+  
   ll<-.latslonsfromr(rte)
   si <- .rast(solarindexarray(tme$year+1900, tme$mon+1, tme$mday, tme$hour, ll$lats, ll$lons), rte)
   rlsto[[5]]  <- rlsto[[4]]  - (si * dni)
