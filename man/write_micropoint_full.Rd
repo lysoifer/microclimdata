@@ -58,7 +58,6 @@ writes an h5 file with three groups. 1) microclim/ contains modelled
  allow recreation of the obs_time vector used in the models.
  Group 2) inputs - if inputs are provided, they are written the the file
  Group 3) metadata - contains, lat, lon, time_zone
- @export
 }
 \description{
 Write output from RunModelFull

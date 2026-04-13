@@ -1,6 +1,5 @@
 #' @title Write timeseries profiles from RunModelFull
-#' @description
-#' Write output from RunModelFull
+#' @description Write output from RunModelFull
 #' @param mout output of RunModelFull
 #' @param fname file name (must be .h5)
 #' @param h heights of canopy nodes in mout (represent top of each bin)
@@ -26,7 +25,8 @@
 #'  allow recreation of the obs_time vector used in the models.
 #'  Group 2) inputs - if inputs are provided, they are written the the file
 #'  Group 3) metadata - contains, lat, lon, time_zone
-#'  @export
+#' @import rhdf5
+#' @export
 write_micropoint_full <- function(mout, fname, h, st_time, en_time, microout = c("tair", "tleaf", "relhum"), 
                                 vegp = NULL, soilp = NULL, macroclim = NULL, 
                                 zref = NULL, Lfrac = NULL, paii, overwrite = T) {
