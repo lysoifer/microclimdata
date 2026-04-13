@@ -29,7 +29,8 @@ Imports:
     utils,
     zoo,
     lidR,
-    data.table
+    data.table,
+    rhdf5
 Remotes: github::rspatial/luna, github::ilyamaclean/mcera5
 Suggests: 
     knitr,
