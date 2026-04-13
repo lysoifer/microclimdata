@@ -153,3 +153,62 @@ write_micropoint_full <- function(mout, fname, h, st_time, en_time, microout = c
   h5write("UTC", file = fname, name = "metadata/time_zone")
   h5closeAll()
 } 
+#' @title read micropoint full
+#' @description Read output from `write_micropoint_full()`
+#' 
+#' @param fname .h5 file name to read
+#' @param microvars which microclimate variables should be read from the output.
+#' Can be any names including in output of RunModelFull and that were saved when 
+#' running `write_micropoint_full()`.
+#' @param read_inputs logical; should inputs be read in addition to microclimate outputs
+#' @returns description returns list of microclimate variables, heights of nodes, 
+#' lat, lon, time, and input parameters if specified. Microclimate arrays are organized
+#' as described in `write_micropoint_full()`
+#' @import rhdf5
+#' @export
+read_micropoint_full <- function(fname, microvars = c("tair", "tleaf", "relhum"), read_inputs = NULL) {
+  
+  mout = list()
+  
+  if("tair" %in% microvars) {
+    mout[["tair"]] <- h5read(fname, "/microclim/tair")
+  }
+  if("tleaf" %in% microvars) {
+    mout[["tleaf"]] <- h5read(fname, "/microclim/tleaf")
+  }
+  if("relhum" %in% microvars) {
+    mout[["relhum"]] <- h5read(fname, "/microclim/relhum")
+  }
+  microattr <- h5readAttributes(fname, "/microclim/")
+  tz <- h5read(fname, "metadata/time_zone")[1]
+  h = microattr$height
+  tme <- seq(as.POSIXlt(microattr$start_time[1], tz), as.POSIXlt(microattr$end_time[1], tz), microattr$time_step_seconds[1])
+  
+  mout[["height"]] <- h # top of bin
+  mout[["tme"]] <- tme
+  mout[["lat"]] <-  h5read(fname, "metadata/lat")[1]
+  mout[["lon"]] <-  h5read(fname, "metadata/lon")[1]
+  
+  if("vegp" %in% read_inputs) {
+    mout[["vegp"]] <- h5read(fname, "/inputs/vegp")
+  }
+  if("soilp" %in% read_inputs) {
+    mout[["soilp"]] <- h5read(fname, "/inputs/soilp")
+  }
+  if("macroclim" %in% read_inputs) {
+    mout[["macroclim"]] <- h5read(fname, "/inputs/macroclim")
+  }
+  if("zref" %in% read_inputs) {
+    mout[["zref"]] <- h5read(fname, "/inputs/zref")
+  }
+  if("Lfrac" %in% read_inputs) {
+    mout[["lfrac"]] <- h5read(fname, "/inputs/Lfrac")
+  }
+  
+  return(mout)
+}
+
+
+
+
+
