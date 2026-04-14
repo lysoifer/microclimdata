@@ -207,8 +207,67 @@ read_micropoint_full <- function(fname, microvars = c("tair", "tleaf", "relhum")
   
   return(mout)
 }
-
-
+#' @title Summarize micropoint output
+#' @param mout output from read_micropoint_full
+#' @param sumby character; temporal unit over which to sum the data (can be month,
+#' month-year, julian, julian-year, ymd, or hour)
+#' @param fun character; function to summarize data (e.g., mean, max, min)
+#' @returns list of dataframes; each dataframe in the list represents one of the
+#' microclimate variables. Value = the value for the specified variable (var). The 
+#' third column name indicates sumby function. Heights are canopy nodes
+#' @export
+micropoint_sum <- function(mout, sumby = "month", fun = "max") {
+  
+  out <- list()
+  
+  # figure out which microclim parameters are in mout
+  micros <- names(mout)
+  micros <- grep("tair|tleaf|relhum", micros, value = T)
+  
+  # create summary groups
+  if(sumby == "month") {
+    grptime <- month(mout[["tme"]])
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  if(sumby == "month-year") {
+    grptime <- format(mout[["tme"]], "%Y-%m")
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  if(sumby == "julian") {
+    grptime <- yday(mout[["tme"]])
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  if(sumby == "julian-year") {
+    grptime <- format(mout[["tme"]], "%Y-%j")
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  if(sumby == "ymd") {
+    grptime <- format(mout[["tme"]], "%Y-%m-%d")
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  if(sumby == "hour") {
+    grptime <- hour(mout[["tme"]])
+    grptime <- rep(grptime, each = length(mout[["height"]]))
+  }
+  
+  # height groups
+  hgt <- rep(mout[["height"]], times = dim(mout[[i]])[1])
+  
+  # combine height and time groups for summarizing data
+  grps <- paste0(grptime, "_", hgt) # groups arranged colwise for tapply
+  
+  for(i in 1:length(micros)) {
+    # time groups
+    summ <- array2DF(tapply(mout[[i]], grps, fun))
+    summ$time = stringr::str_split_i(summ$Var1, pattern = "_", 1)
+    summ$heights = as.numeric(stringr::str_split_i(summ$Var1, pattern = "_", 2))
+    summ$var <- micros[i]
+    summ$summ_fun <- fun
+    names(summ)[3] <- sumby
+    out[[micros[i]]] <- summ
+  }
+  return(out)
+}
 
 
 
