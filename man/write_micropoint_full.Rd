@@ -12,7 +12,7 @@ write_micropoint_full(
   en_time,
   microout = c("tair", "tleaf", "relhum"),
   vegp = NULL,
-  soilp = NULL,
+  soilc = NULL,
   macroclim = NULL,
   zref = NULL,
   Lfrac = NULL,
@@ -35,8 +35,6 @@ write_micropoint_full(
 
 \item{vegp}{if not NULL, writes vegp inputs}
 
-\item{soilp}{if not NULL, writes soilc inputs}
-
 \item{macroclim}{if not null writes macroclimate data inputs}
 
 \item{zref}{if not NULL writes zref parameter}
@@ -44,6 +42,8 @@ write_micropoint_full(
 \item{Lfrac}{if not NULL writes Lfrac inputs}
 
 \item{paii}{if not NULL writes paii inputs}
+
+\item{soilp}{if not NULL, writes soilc inputs}
 }
 \value{
 writes an h5 file with three groups. 1) microclim/ contains modelled
