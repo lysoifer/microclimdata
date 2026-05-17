@@ -935,6 +935,8 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
     maxtime = max(climdat$obs_time)
   }
   
+  climdat$precip[climdat$precip<0] <- 0
+  
   return(climdat)
 }
 #' @title Download UKCP18 climate data, including future climate
