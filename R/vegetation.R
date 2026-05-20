@@ -371,20 +371,20 @@ lai_mosaic <- function(r, pathin, reso = 10, msk = TRUE) {
           tile<-tile+1
           ri<-crop(ri,ext(r2))
           ri<-project(ri,crs(r))
-          rr<-rast(ext(ri))
-          res(rr)<-500
-          crs(rr)<-crs(ri)
-          ro[[tile]]<-resample(ri,rr)
+          # rr<-rast(ext(ri))
+          # res(rr)<-500
+          # crs(rr)<-crs(ri)
+          ro[[tile]]<-resample(ri,r)
         }
       } else {
         oip<-terra::intersect(ext(r),ext(ri))
         if (is.null(oip) == FALSE) {
           tile<-tile+1
           ri<-crop(ri,ext(r))
-          rr<-rast(ext(ri))
-          res(rr)<-500
-          crs(rr)<-crs(ri)
-          ro[[tile]]<-resample(ri,rr)
+          # rr<-rast(ext(ri))
+          # res(rr)<-500
+          # crs(rr)<-crs(ri)
+          ro[[tile]]<-resample(ri,r)
         }
       }
     }
