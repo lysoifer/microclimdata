@@ -912,7 +912,7 @@ climpoint_extract<-function(climdata, x, y, aslatlong = FALSE, altcorrect=2, dtm
   if(altcorrect>0) {
     # if elevation is a raster
     if(is(elev, "SpatRaster")) {
-      elev_p <- as.numeric(terra::extract(elev, matrix(c(x,y))))
+      elev_p <- as.numeric(terra::extract(elev, matrix(c(x,y), nrow = 1)))
     } else {
       elev_p = elev
     }
