@@ -1205,9 +1205,9 @@ gedi_download<-function(aoi, outdir, creds, overwrite=F, clean = T) {
   l2b = paste0(outdir, basename(granules))
   
   # first make .netrc file if it does not already exist
-  file.create(paste0(gedi_raw, ".netrc"))
+  file.create(paste0(outdir, ".netrc"))
   writeLines(paste0("machine urs.earthdata.nasa.gov\nlogin ", creds[1, "username"], "\npassword ", creds[1,"password"]),
-             paste0(gedi_raw, ".netrc"))
+             paste0(outdir, ".netrc"))
   gvect = data.table::data.table()
   for(i in 1:length(l2b)) {
     # check if file exists
