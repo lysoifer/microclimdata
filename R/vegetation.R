@@ -1199,12 +1199,13 @@ gedi_process<-function(l2b, aoi, type, clean = F, filters = list(yr = NULL, mth 
 #' @export
 gedi_download<-function(aoi, outdir, creds, overwrite=F, clean = T) {
   
-  e = ext(aoi)
-  e = project(e, from = crs(aoi), to = "epsg:4326")
+  e = terra::ext(aoi)
+  e = terra::project(e, from = crs(aoi), to = "epsg:4326")
   granules = rGEDI::gedifinder(product = 'GEDI02_B', e[4], e[1], e[3], e[2], version = "002")
   l2b = paste0(outdir, basename(granules))
   
   # first make .netrc file if it does not already exist
+  if(!dir.exists(outdir)) dir.create(outdir, recursive = T, showWarnings = F)
   file.create(paste0(outdir, ".netrc"))
   writeLines(paste0("machine urs.earthdata.nasa.gov\nlogin ", creds[1, "username"], "\npassword ", creds[1,"password"]),
              paste0(outdir, ".netrc"))
@@ -1236,7 +1237,8 @@ gedi_download<-function(aoi, outdir, creds, overwrite=F, clean = T) {
                          warning = function(e){error("GEDI file corrupt: redownloading")})
       }
       l2b_i = .getL2Bprofile(l2b_i, clean)  
-    }}
+    }
+  }
   l2b = gsub(".h5", ".csv", l2b)
   return(l2b)
 }
