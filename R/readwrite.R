@@ -2,6 +2,8 @@
 #' @description Write output from RunModelFull
 #' @param mout output of RunModelFull
 #' @param fname file name (must be .h5)
+#' @param lon longitude of profile
+#' @param lat latitude of the profile
 #' @param h heights of canopy nodes in mout (represent top of each bin)
 #' @param st_time start time
 #' @param en_time end time - assumes time step between start and end times is 1 hour
@@ -124,8 +126,8 @@ write_micropoint_full <- function(mout, fname, h, st_time, en_time, microout = c
   if(!is.null(vegp)) {
     h5write(vegp, file = fname, name = "inputs/vegp")
   }
-  if(!is.null(soilc)) {
-    h5write(soilc, file = fname, name = "inputs/soilc")
+  if(!is.null(soilp)) {
+    h5write(soilp, file = fname, name = "inputs/soilp")
   }
   if(!is.null(macroclim)) {
     h5write(macroclim, file = fname, name = "inputs/macroclim")
@@ -148,8 +150,8 @@ write_micropoint_full <- function(mout, fname, h, st_time, en_time, microout = c
   H5close()
   
   h5createGroup(fname, "metadata/")
-  h5write(x, file = fname, name = "metadata/lon")
-  h5write(y, file = fname, name = "metadata/lat")
+  h5write(lon, file = fname, name = "metadata/lon")
+  h5write(lat, file = fname, name = "metadata/lat")
   h5write("UTC", file = fname, name = "metadata/time_zone")
   h5closeAll()
 } 

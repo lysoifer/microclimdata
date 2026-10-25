@@ -43,6 +43,10 @@ write_micropoint_full(
 
 \item{paii}{if not NULL writes paii inputs}
 
+\item{lon}{longitude of profile}
+
+\item{lat}{latitude of the profile}
+
 \item{soilp}{if not NULL, writes soilc inputs}
 }
 \value{
