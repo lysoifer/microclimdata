@@ -29,8 +29,8 @@
 #'  Group 3) metadata - contains, lat, lon, time_zone
 #' @import rhdf5
 #' @export
-write_micropoint_full <- function(mout, fname, h, st_time, en_time, microout = c("tair", "tleaf", "relhum"), 
-                                vegp = NULL, soilc = NULL, macroclim = NULL, 
+write_micropoint_full <- function(mout, fname, lon, lat, h, st_time, en_time, microout = c("tair", "tleaf", "relhum"), 
+                                vegp = NULL, soilp = NULL, macroclim = NULL, 
                                 zref = NULL, Lfrac = NULL, paii, overwrite = T) {
   
   
