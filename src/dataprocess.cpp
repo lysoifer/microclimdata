@@ -1768,15 +1768,15 @@ NumericVector rangelimapply(NumericVector v1, NumericVector v2,
     double v2d = 0.0;
     double v3d = 0.0;
     for (R_xlen_t i = 0; i < v1.size(); ++i) {
-        double dif = abs(v1[i] - v1m);
+        double dif = std::abs(v1[i] - v1m);
         if (dif > v1d) v1d = dif;
     }
     for (R_xlen_t i = 0; i < v2.size(); ++i) {
-        double dif = abs(v2[i] - v2m);
+        double dif = std::abs(v2[i] - v2m);
         if (dif > v2d) v2d = dif;
     }
     for (R_xlen_t i = 0; i < v3.size(); ++i) {
-        double dif = abs(v3[i] - v3m);
+        double dif = std::abs(v3[i] - v3m);
         if (dif > v3d) v3d = dif;
     }
     // Calculate expected max difference
@@ -2472,7 +2472,7 @@ IntegerMatrix getsoiltypecpp(NumericMatrix bulkden, NumericMatrix clay,
             if (!NumericMatrix::is_na(val)) {
                 double difs = 9999.99;
                 for (int k = 0; k < 11; ++k) {
-                    double difn = abs(val - bulkv[k]) / bdensd +
+                    double difn = std::abs(val - bulkv[k]) / bdensd +
                         std::abs(clay(i, j) - clayv[k]) / claysd +
                         std::abs(sand(i, j) - sandv[k]) / sandsd +
                         std::abs(silt(i, j) - siltv[k]) / siltsd;
