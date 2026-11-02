@@ -2473,9 +2473,9 @@ IntegerMatrix getsoiltypecpp(NumericMatrix bulkden, NumericMatrix clay,
                 double difs = 9999.99;
                 for (int k = 0; k < 11; ++k) {
                     double difn = abs(val - bulkv[k]) / bdensd +
-                        abs(clay(i, j) - clayv[k]) / claysd +
-                        abs(sand(i, j) - sandv[k]) / sandsd +
-                        abs(silt(i, j) - siltv[k]) / sandsd;
+                        std::abs(clay(i, j) - clayv[k]) / claysd +
+                        std::abs(sand(i, j) - sandv[k]) / sandsd +
+                        std::abs(silt(i, j) - siltv[k]) / siltsd;
                     if (difn < difs) soiltype(i, j) = k + 1;
                     difs = difn;
 
